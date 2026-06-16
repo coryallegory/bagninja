@@ -53,8 +53,10 @@ bagninja/
 │   │   └── visibility.ts    # Line-of-sight calculations
 │   ├── map/
 │   │   ├── tilemap.ts       # Tile definitions and map data
+│   │   ├── level.ts         # Level loading, terrain grid, spawn zones
 │   │   ├── loader.ts        # Map loading from JSON
-│   │   └── neighborhood.json # Map layout data
+│   │   └── levels/
+│   │       └── neighborhood.json # Level 1: accessibility grid + metadata
 │   ├── sprites/
 │   │   ├── spritesheet.ts   # Sprite atlas definitions
 │   │   └── animator.ts      # Frame-based animation controller
@@ -83,28 +85,34 @@ bagninja/
 - Basic tile map rendering
 
 ### Phase 2: Map & Movement
-- Design neighborhood tile map (6 yards, street, fences, homes)
+- Design neighborhood accessibility grid (9×16 terrain type grid)
+- Define level data format (JSON) with terrain types, spawn zones, Curtis property markers
 - Grid-based player movement with smooth tweening between cells
-- Collision detection against fences, homes, obstacles
+- Collision detection using terrain walkability rules
 - Camera (static — single screen, no scrolling)
+- Validate level design: ensure all accessible grass is reachable, paths to Curtis' lawn exist
 
 ### Phase 3: Core Mechanics
-- Lawn mowing system (grass tiles transition to mowed on contact with mower)
+- Lawn mowing system (unmown grass tiles transition to mown when mower moves onto them)
+- Curtis' lawn is pre-mown and never mowable
 - Mower fullness percentage tracking
-- Engage/disengage mower interaction
+- Engage/disengage mower interaction (combined sprite on engage, separate to adjacent square on disengage)
 - Empty mower → receive yard waste bag
 - Bag carrying state (player cannot use mower while holding bag)
 - Drop bag on Curtis' lawn only
+- Random spawn placement: mower in non-Curtis yard, player in non-Curtis yard
 
 ### Phase 4: Curtis AI
-- Curtis state machine: idle (indoors) → emerge → inspect → discover bag → angry search → return indoors
+- Curtis state machine: idle (indoors) → emerge → patrol → spot player → alert ("HEY!") → call police → return indoors
+- Multi-stage detection escalation: spot → face player → shout "HEY!" → call police (each stage requires continued LOS)
+- Player can escape at any stage by breaking line of sight
 - Random emergence timer
-- Line-of-sight detection (cardinal/orthogonal ray casting on grid)
-- Detection triggers: player on Curtis' property, player holding bag in LOS
+- Line-of-sight detection (cardinal/orthogonal ray casting on grid, blocked by homes and obstacles)
+- Detection triggers: player on Curtis' property (with or without bag) while Curtis is outside with LOS
 
 ### Phase 5: Win/Lose Conditions
 - Police arrival animation on detection (lose condition)
-- Win condition: all accessible grass mowed + all bags on Curtis' lawn
+- Win condition: all accessible grass mown + all bags on Curtis' lawn
 - End screens with restart option
 
 ### Phase 6: Art & Polish
@@ -131,7 +139,9 @@ bagninja/
 
 1. **ECS-lite architecture** — Entities with component bags, systems iterate per frame. Keeps game logic modular and testable without heavy framework overhead.
 
-2. **Grid-based movement with tweening** — Logical positions are grid cells; visual positions interpolate smoothly between cells over ~150ms to mimic NES-era movement feel.
+2. **Accessibility grid level definition** — Each level is a 9×16 grid of terrain types that defines walkability, LOS blocking, gameplay zones, and entity spawn rules. This separates map/obstacle design from game logic and enables future multi-level support.
+
+3. **Grid-based movement with tweening** — Logical positions are grid cells; visual positions interpolate smoothly between cells over ~150ms to mimic NES-era movement feel.
 
 3. **Fixed timestep loop** — Logic runs at 60 updates/sec decoupled from render frame rate for consistent behavior across devices.
 
