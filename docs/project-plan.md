@@ -166,8 +166,8 @@ bagninja/
 4. **Bag discovery is flavor, not a new rules system**
    Curtis reacts when he notices new bags on his property, but this is presentation and state flavor unless the player is visible on his property.
 
-5. **Bottom control area must not cover gameplay**
-   Mobile controls and action button should sit in reserved UI space below the active gameplay view rather than over the playfield.
+5. **Mobile touch controls should stay visually quiet**
+   Mobile controls should be integrated into the play area as faint thumb anchors rather than loud UI panels or heavy overlays.
 
 6. **Placeholder-first asset workflow**
    Basic colored blocks and temporary sprites should be enough to finish gameplay before final art.
@@ -184,7 +184,7 @@ bagninja/
 - Create the initial game state shape
 - Set up Vitest
 - Add placeholder rendering for tiles and entities
-- Reserve a bottom UI band for mobile controls and action button
+- Keep touch controls visually lightweight while gameplay rules are being tuned
 
 **Deliverable:** A running app that shows a static playfield and accepts input.
 
@@ -248,8 +248,8 @@ bagninja/
   - all mowable grass is cut
   - all generated bags are on Curtis property
 - Add title, win, and lose screens
-- Implement touch controls in the bottom UI band
-- Implement contextual action button outside the gameplay area
+- Implement a left-thumb touch joystick and right-thumb touch action target
+- Keep the mobile control treatment subtle so it does not dominate the playfield
 
 **Tests to add during this phase:**
 - Win does not trigger early

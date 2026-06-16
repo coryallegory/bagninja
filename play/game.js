@@ -63,8 +63,20 @@
   const levelFileInputEl = document.getElementById("level-file-input");
   const loadDefaultButtonEl = document.getElementById("load-default");
   const restartLevelButtonEl = document.getElementById("restart-level");
+  const joystickEl = document.getElementById("joystick");
+  const joystickKnobEl = document.getElementById("joystick-knob");
   const actionButtonEl = document.getElementById("action-button");
   const gameOverOverlayEl = document.getElementById("game-over-overlay");
+  const heldMoveState = {
+    source: null,
+    direction: null,
+    key: null,
+    timerId: null
+  };
+  const touchState = {
+    pointerId: null,
+    direction: null
+  };
 
   function setLoadStatus(message, tone) {
     loadStatusEl.textContent = message;
@@ -703,25 +715,145 @@
   }
 
   function handleKeyDown(event) {
-    if (event.repeat) {
+    const direction = getDirectionFromKey(event.key);
+
+    if (direction) {
+      event.preventDefault();
+      if (event.repeat) {
+        return;
+      }
+      beginHeldMovement(direction, "keyboard", event.key);
+    } else if (event.key === " " || event.key === "Enter" || event.key === "e" || event.key === "E") {
+      event.preventDefault();
+      if (event.repeat) {
+        return;
+      }
+      handleAction();
+    }
+  }
+
+  function handleKeyUp(event) {
+    if (heldMoveState.source === "keyboard" && heldMoveState.key === event.key) {
+      clearHeldMovement();
+    }
+  }
+
+  function getDirectionFromKey(key) {
+    if (key === "ArrowUp" || key === "w" || key === "W") {
+      return "up";
+    }
+    if (key === "ArrowDown" || key === "s" || key === "S") {
+      return "down";
+    }
+    if (key === "ArrowLeft" || key === "a" || key === "A") {
+      return "left";
+    }
+    if (key === "ArrowRight" || key === "d" || key === "D") {
+      return "right";
+    }
+    return null;
+  }
+
+  function stepDirection(direction) {
+    if (!direction) {
+      return;
+    }
+    movePlayer(direction);
+  }
+
+  function clearHeldMovement() {
+    if (heldMoveState.timerId) {
+      window.clearInterval(heldMoveState.timerId);
+    }
+    heldMoveState.source = null;
+    heldMoveState.direction = null;
+    heldMoveState.key = null;
+    heldMoveState.timerId = null;
+  }
+
+  function beginHeldMovement(direction, source, key = null, immediate = true) {
+    if (!direction) {
+      clearHeldMovement();
       return;
     }
 
-    if (event.key === "ArrowUp" || event.key === "w" || event.key === "W") {
-      event.preventDefault();
-      movePlayer("up");
-    } else if (event.key === "ArrowDown" || event.key === "s" || event.key === "S") {
-      event.preventDefault();
-      movePlayer("down");
-    } else if (event.key === "ArrowLeft" || event.key === "a" || event.key === "A") {
-      event.preventDefault();
-      movePlayer("left");
-    } else if (event.key === "ArrowRight" || event.key === "d" || event.key === "D") {
-      event.preventDefault();
-      movePlayer("right");
-    } else if (event.key === " " || event.key === "Enter" || event.key === "e" || event.key === "E") {
-      event.preventDefault();
-      handleAction();
+    if (heldMoveState.direction === direction && heldMoveState.source === source && heldMoveState.key === key) {
+      return;
+    }
+
+    clearHeldMovement();
+    heldMoveState.source = source;
+    heldMoveState.direction = direction;
+    heldMoveState.key = key;
+    if (immediate) {
+      stepDirection(direction);
+    }
+    heldMoveState.timerId = window.setInterval(() => {
+      stepDirection(direction);
+    }, SIMULATION_TICK_MS);
+  }
+
+  function setJoystickVisual(dx, dy, isActive) {
+    joystickEl.classList.toggle("is-active", Boolean(isActive));
+    joystickKnobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+  }
+
+  function resetJoystick() {
+    touchState.pointerId = null;
+    touchState.direction = null;
+    if (heldMoveState.source === "joystick") {
+      clearHeldMovement();
+    }
+    setJoystickVisual(0, 0, false);
+  }
+
+  function resolveJoystickDirection(event) {
+    const rect = joystickEl.getBoundingClientRect();
+    const centerX = rect.left + (rect.width / 2);
+    const centerY = rect.top + (rect.height / 2);
+    const rawDx = event.clientX - centerX;
+    const rawDy = event.clientY - centerY;
+    const radius = rect.width / 2;
+    const maxOffset = 30;
+    const distance = Math.min(Math.hypot(rawDx, rawDy), radius);
+    const angle = Math.atan2(rawDy, rawDx);
+    const clampedDx = Math.cos(angle) * Math.min(distance, maxOffset);
+    const clampedDy = Math.sin(angle) * Math.min(distance, maxOffset);
+    const threshold = 12;
+
+    let direction = null;
+    if (distance >= threshold) {
+      if (Math.abs(rawDx) > Math.abs(rawDy)) {
+        direction = rawDx > 0 ? "right" : "left";
+      } else {
+        direction = rawDy > 0 ? "down" : "up";
+      }
+    }
+
+    return {
+      direction,
+      dx: Number.isFinite(clampedDx) ? clampedDx : 0,
+      dy: Number.isFinite(clampedDy) ? clampedDy : 0
+    };
+  }
+
+  function updateJoystickFromPointer(event) {
+    const next = resolveJoystickDirection(event);
+    setJoystickVisual(next.dx, next.dy, Boolean(next.direction));
+
+    if (next.direction !== touchState.direction) {
+      const previousDirection = touchState.direction;
+      touchState.direction = next.direction;
+      if (next.direction) {
+        beginHeldMovement(next.direction, "joystick", null, previousDirection === null);
+      } else if (heldMoveState.source === "joystick") {
+        clearHeldMovement();
+      }
+      return;
+    }
+
+    if (!next.direction && heldMoveState.source === "joystick") {
+      clearHeldMovement();
     }
   }
 
@@ -769,7 +901,43 @@
     });
   });
 
+  joystickEl.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    joystickEl.setPointerCapture(event.pointerId);
+    touchState.pointerId = event.pointerId;
+    updateJoystickFromPointer(event);
+  });
+
+  joystickEl.addEventListener("pointermove", (event) => {
+    if (event.pointerId !== touchState.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    updateJoystickFromPointer(event);
+  });
+
+  joystickEl.addEventListener("pointerup", (event) => {
+    if (event.pointerId !== touchState.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    resetJoystick();
+  });
+
+  joystickEl.addEventListener("pointercancel", (event) => {
+    if (event.pointerId !== touchState.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    resetJoystick();
+  });
+
   window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("keyup", handleKeyUp);
+  window.addEventListener("blur", () => {
+    clearHeldMovement();
+    resetJoystick();
+  });
   window.addEventListener("beforeunload", stopSimulationLoop);
 
   setCanvasSize(13, 24);

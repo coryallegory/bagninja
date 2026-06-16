@@ -19,8 +19,11 @@ Bag Ninja currently runs as a plain HTML/CSS/JavaScript browser prototype with a
 - The game is real-time rather than turn-based.
 - The browser runtime advances simulation on a fixed `400ms` tick.
 - Player movement and action input do not advance Curtis or police directly.
+- Held keyboard and joystick movement repeat on the same `400ms` cadence as Curtis.
+- Quick keyboard taps can still move the player faster than the held-repeat cadence.
 - Curtis patrol, suspicion-based detection, and police pursuit all run through the shared core in [play/game-core.js](/abs/path/c:/dev/bagninja/play/game-core.js:1).
 - The playable page now renders from `assets/` with code-drawn fallback visuals if a requested image is missing.
+- On mobile widths, touch controls are overlaid inside the play area as faint thumb anchors: a left joystick and a right action circle.
 
 ## Tests
 

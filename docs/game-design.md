@@ -205,9 +205,11 @@ The player loses when the police reach the player after Curtis completes the esc
 
 ### Mobile
 
-- Directional controls in a reserved bottom control band
-- Contextual action button in that same bottom control band
-- Controls must not cover the gameplay view
+- Touch controls are integrated into the play area rather than rendered in a separate panel
+- Movement uses a left-thumb joystick with faint anchor visuals
+- Action uses a right-thumb circular touch target with no visible text label
+- Held joystick movement repeats at the same `400ms` cadence as Curtis
+- Changing joystick direction while still dragging does not grant an extra immediate step; the new direction applies on the next repeat tick
 
 ## Simulation Rules
 

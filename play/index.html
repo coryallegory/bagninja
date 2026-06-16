@@ -45,6 +45,25 @@
           <div id="canvas-frame" class="canvas-frame">
             <canvas id="game-canvas" aria-label="Bag Ninja gameplay area"></canvas>
           </div>
+          <div class="touch-controls" aria-label="Touch controls">
+            <div class="touch-cluster touch-cluster-left">
+              <div
+                id="joystick"
+                class="joystick"
+                aria-label="Movement joystick"
+                role="application"
+              >
+                <span class="joystick-arrow joystick-arrow-up" aria-hidden="true"></span>
+                <span class="joystick-arrow joystick-arrow-right" aria-hidden="true"></span>
+                <span class="joystick-arrow joystick-arrow-down" aria-hidden="true"></span>
+                <span class="joystick-arrow joystick-arrow-left" aria-hidden="true"></span>
+                <span id="joystick-knob" class="joystick-knob" aria-hidden="true"></span>
+              </div>
+            </div>
+            <div class="touch-cluster touch-cluster-right">
+              <button id="action-button" class="action-button" type="button" aria-label="Action"></button>
+            </div>
+          </div>
         </section>
 
         <section id="game-over-overlay" class="game-over-overlay" aria-hidden="true">
@@ -52,24 +71,6 @@
             <h2>Game Over</h2>
             <p>Police caught Bag Ninja in the act.</p>
             <p class="game-over-scene">[ Policeman handcuffing Bag Ninja ]</p>
-          </div>
-        </section>
-
-        <section class="panel controls-panel">
-          <div class="controls-copy">
-            <h2>Controls</h2>
-            <p>Move with arrow keys, WASD, or the buttons below. Use <strong>Space</strong>, <strong>Enter</strong>, or <strong>E</strong> for Action when it is available.</p>
-          </div>
-          <div class="touch-controls" aria-label="Touch controls">
-            <div class="dpad">
-              <button data-move="up" type="button">Up</button>
-              <div class="dpad-middle">
-                <button data-move="left" type="button">Left</button>
-                <button data-move="down" type="button">Down</button>
-                <button data-move="right" type="button">Right</button>
-              </div>
-            </div>
-            <button id="action-button" class="action-button" type="button">Action</button>
           </div>
         </section>
       </section>
