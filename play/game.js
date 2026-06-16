@@ -1,6 +1,7 @@
 (function () {
   const DEFAULT_LEVEL_URL = "./levels/level-01.json";
   const TILE_SIZE = 16;
+  const DISPLAY_SCALE = 2;
   const SIMULATION_TICK_MS = 400;
   const MOVE_ANIMATION_MS = 220;
   const ASSET_PATHS = {
@@ -14,6 +15,7 @@
       F: "../assets/items/fence.png",
       B: "../assets/items/bush.png",
       T: "../assets/items/tree.png",
+      K: "../assets/items/roadblock.png",
       L: "../assets/items/tall-grass.png"
     },
     markers: {
@@ -52,6 +54,10 @@
   const playerStateEl = document.getElementById("player-state");
   const curtisStateEl = document.getElementById("curtis-state");
   const mowedCountEl = document.getElementById("mowed-count");
+  const mowerFillStatEl = document.getElementById("mower-fill-stat");
+  const mowerFillMeterEl = document.getElementById("mower-fill-meter");
+  const mowerFillTextEl = document.getElementById("mower-fill-text");
+  const mowerFillBarEl = document.getElementById("mower-fill-bar");
   const loadStatusEl = document.getElementById("load-status");
   const defaultFileInputEl = document.getElementById("default-file-input");
   const levelFileInputEl = document.getElementById("level-file-input");
@@ -126,7 +132,9 @@
   function setCanvasSize(width, height) {
     canvasEl.width = width * TILE_SIZE;
     canvasEl.height = height * TILE_SIZE;
-    canvasFrameEl.style.maxWidth = `${canvasEl.width + 32}px`;
+    canvasEl.style.width = `${canvasEl.width * DISPLAY_SCALE}px`;
+    canvasEl.style.height = `${canvasEl.height * DISPLAY_SCALE}px`;
+    canvasFrameEl.style.maxWidth = `${(canvasEl.width * DISPLAY_SCALE) + 32}px`;
   }
 
   async function readLevelFile(file, label) {
@@ -256,12 +264,9 @@
   }
 
   function drawZoneOverlay(level, x, y) {
-    if (!core.isCurtisZoneAt(level, x, y)) {
-      return;
-    }
-
-    context.fillStyle = "rgba(170, 181, 74, 0.34)";
-    context.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    void level;
+    void x;
+    void y;
   }
 
   function drawItemFallback(symbol, pixelX, pixelY) {
@@ -294,6 +299,17 @@
         context.fill();
         context.fillStyle = "#6e4d32";
         context.fillRect(pixelX + 7, pixelY + 12, 2, 3);
+        break;
+      case "K":
+        context.fillStyle = "#f26922";
+        context.fillRect(pixelX + 1, pixelY + 5, 14, 6);
+        context.fillStyle = "#fff6df";
+        context.fillRect(pixelX + 3, pixelY + 6, 3, 4);
+        context.fillRect(pixelX + 7, pixelY + 6, 3, 4);
+        context.fillRect(pixelX + 11, pixelY + 6, 2, 4);
+        context.fillStyle = "#3c3b39";
+        context.fillRect(pixelX + 2, pixelY + 11, 3, 2);
+        context.fillRect(pixelX + 11, pixelY + 11, 3, 2);
         break;
       case "L":
         context.fillStyle = "#8fc159";
@@ -329,6 +345,29 @@
     drawImageOrFallback(ASSET_PATHS.moveable.bag, bag.x * TILE_SIZE, bag.y * TILE_SIZE, () => {
       drawBagFallback(bag);
     });
+  }
+
+  function drawOverlappingMoveableIndicators() {
+    if (!state.game) {
+      return;
+    }
+
+    const player = state.game.player;
+    if (!player) {
+      return;
+    }
+
+    const freeBag = core.getFreeBagAt(state.game, player.x, player.y);
+    if (freeBag) {
+      const pixelX = player.x * TILE_SIZE;
+      const pixelY = player.y * TILE_SIZE;
+      context.fillStyle = "rgba(248, 244, 234, 0.92)";
+      context.fillRect(pixelX + 9, pixelY + 9, 6, 6);
+      context.fillStyle = "#ab8d63";
+      context.fillRect(pixelX + 10, pixelY + 10, 4, 4);
+      context.fillStyle = "#886f4d";
+      context.fillRect(pixelX + 11, pixelY + 9, 2, 2);
+    }
   }
 
   function drawMowerFallback() {
@@ -398,6 +437,46 @@
     });
   }
 
+  function getMowerFillRatio() {
+    if (!state.game) {
+      return 0;
+    }
+
+    const mower = core.getMower(state.game);
+    if (!mower || !mower.capacity) {
+      return 0;
+    }
+
+    return Math.max(0, Math.min(1, mower.fullness / mower.capacity));
+  }
+
+  function drawMowerFillIndicator() {
+    if (!state.game) {
+      return;
+    }
+
+    const mower = core.getMower(state.game);
+    if (!mower || mower.attachedTo !== "player") {
+      return;
+    }
+
+    const anchorX = mower.attachedTo === "player" ? state.game.player.x : mower.x;
+    const anchorY = mower.attachedTo === "player" ? state.game.player.y : mower.y;
+    const ratio = getMowerFillRatio();
+    const pixelX = (anchorX * TILE_SIZE) + 1;
+    const pixelY = (anchorY * TILE_SIZE) - 6;
+
+    context.fillStyle = "rgba(28, 22, 18, 0.8)";
+    context.fillRect(pixelX, pixelY, 14, 4);
+
+    context.fillStyle = ratio >= 1
+      ? "#c44a33"
+      : ratio >= 0.66
+        ? "#d0a83d"
+        : "#74b850";
+    context.fillRect(pixelX + 1, pixelY + 1, Math.round(12 * ratio), 2);
+  }
+
   function drawPlayerFallback() {
     if (!state.game || !state.game.player) {
       return;
@@ -444,8 +523,6 @@
       path = isWalking
         ? getCurrentTwoFrame(`../assets/entities/player-operate-mower-${facing}`)
         : `../assets/entities/player-operate-mower-${facing}-01.png`;
-    } else if (player.attachedItemType === "bag") {
-      path = `../assets/entities/player-carry-${facing}-01.png`;
     } else {
       path = isWalking
         ? getCurrentTwoFrame(`../assets/entities/player-walk-${facing}`)
@@ -530,52 +607,15 @@
     }
   }
 
-  function drawMarkers() {
-    if (!state.game || !state.game.level) {
-      return;
-    }
-
-    const level = state.game.level;
-    const player = state.game.player;
-
-    for (let y = 0; y < level.height; y += 1) {
-      for (let x = 0; x < level.width; x += 1) {
-        const marker = level.markers[y][x];
-        if (marker === "_" || (x === player.x && y === player.y) || core.getFreeMowerAt(state.game, x, y)) {
-          continue;
-        }
-
-        const pixelX = x * TILE_SIZE;
-        const pixelY = y * TILE_SIZE;
-
-        const markerPath = ASSET_PATHS.markers[marker];
-        const drewMarker = drawImageOrFallback(markerPath, pixelX, pixelY, () => {
-          if (marker === "c") {
-            context.fillStyle = "#1e1a14";
-          } else if (marker === "o") {
-            context.fillStyle = "#962348";
-          } else if (marker === "p") {
-            context.fillStyle = "rgba(49, 94, 209, 0.5)";
-          } else if (marker === "m") {
-            context.fillStyle = "rgba(217, 109, 24, 0.45)";
-          } else {
-            return;
-          }
-
-          context.fillRect(pixelX + 5, pixelY + 5, 6, 6);
-        });
-        if (!drewMarker && !markerPath) {
-          continue;
-        }
-      }
-    }
-  }
-
   function updateHud() {
     if (!state.game) {
       playerStateEl.textContent = "-";
       curtisStateEl.textContent = "-";
       mowedCountEl.textContent = "0 / 0";
+      mowerFillTextEl.textContent = "0 / 0";
+      mowerFillBarEl.style.width = "0%";
+      mowerFillStatEl.hidden = true;
+      mowerFillMeterEl.hidden = true;
       actionButtonEl.textContent = "Action";
       actionButtonEl.disabled = true;
       return;
@@ -586,7 +626,14 @@
 
     const remaining = core.countRemainingTallGrass(state.game.level);
     const mowed = state.game.totalMowable - remaining;
+    const mower = core.getMower(state.game);
+    const isOperatingMower = state.game.player.attachedItemType === "mower";
+    const fillRatio = getMowerFillRatio();
     mowedCountEl.textContent = `${mowed} / ${state.game.totalMowable}`;
+    mowerFillTextEl.textContent = mower ? `${mower.fullness} / ${mower.capacity}` : "0 / 0";
+    mowerFillBarEl.style.width = `${Math.round(fillRatio * 100)}%`;
+    mowerFillStatEl.hidden = !isOperatingMower;
+    mowerFillMeterEl.hidden = !isOperatingMower;
     actionButtonEl.textContent = core.getActionLabel(state.game);
     actionButtonEl.disabled = !core.hasAvailableAction(state.game);
     updateGameOverPresentation();
@@ -646,11 +693,12 @@
         drawBag(bag);
       });
 
-    drawMarkers();
     drawMower();
     drawCurtis();
     drawPolice();
     drawPlayer();
+    drawOverlappingMoveableIndicators();
+    drawMowerFillIndicator();
     updateHud();
   }
 

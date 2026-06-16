@@ -13,6 +13,7 @@
       F: "../assets/items/fence.png",
       B: "../assets/items/bush.png",
       T: "../assets/items/tree.png",
+      K: "../assets/items/roadblock.png",
       L: "../assets/items/tall-grass.png"
     },
     markers: {
@@ -24,7 +25,7 @@
   };
 
   const BASE_SYMBOLS = ["g", "R", "S"];
-  const ITEM_SYMBOLS = ["_", "H", "F", "B", "T", "L"];
+  const ITEM_SYMBOLS = ["_", "H", "F", "B", "T", "K", "L"];
   const MARKER_SYMBOLS = ["_", "c", "p", "m", "o"];
   const ZONE_SYMBOLS = ["_", "C"];
 
@@ -39,6 +40,7 @@
       { id: "F", label: "Fence", swatch: "fence" },
       { id: "B", label: "Bush", swatch: "bush" },
       { id: "T", label: "Tree", swatch: "tree" },
+      { id: "K", label: "Roadblock", swatch: "roadblock" },
       { id: "L", label: "Tall Grass", swatch: "tall-grass" },
       { id: "_", label: "Erase Item", swatch: "erase" }
     ],
@@ -57,7 +59,7 @@
 
   const LAYER_HELP = {
     base: "Every cell needs one base tile: mowed grass, road, or pavement.",
-    items: "One optional placed object per cell: house, fence, bush, tree, or tall grass.",
+    items: "One optional placed object per cell: house, fence, roadblock, bush, tree, or tall grass.",
     markers: "One optional spawn marker per cell: Curtis, player, mower, or police.",
     zones: "Optional gameplay territory markup. Curtis can walk, detect, and receive dropped bags anywhere marked as Curtis territory."
   };
@@ -420,6 +422,8 @@
         return "item-bush";
       case "T":
         return "item-tree";
+      case "K":
+        return "item-roadblock";
       case "L":
         return "item-tall-grass";
       default:

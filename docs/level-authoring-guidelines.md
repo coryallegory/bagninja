@@ -44,6 +44,7 @@ Use the items layer for placed objects:
 
 - house
 - fence
+- roadblock
 - tree
 - bush
 - tall grass
@@ -119,6 +120,7 @@ These block movement and LOS:
 
 - house
 - fence
+- roadblock
 - tree
 - bush
 
@@ -184,7 +186,7 @@ The validator should report issues grouped by:
 ## Recommended Authoring Workflow
 
 1. Block out the road, pavement, and mowed-grass bases.
-2. Add houses and fences.
+2. Add houses, fences, and roadblocks.
 3. Add bushes, trees, and tall grass.
 4. Paint Curtis territory in the zones layer.
 5. Add markers.

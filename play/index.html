@@ -30,6 +30,13 @@
             <span><strong>State:</strong> <span id="player-state">On Foot</span></span>
             <span><strong>Curtis:</strong> <span id="curtis-state">-</span></span>
             <span><strong>Mowed:</strong> <span id="mowed-count">0 / 0</span></span>
+            <span id="mower-fill-stat" hidden><strong>Mower:</strong> <span id="mower-fill-text">0 / 0</span></span>
+          </div>
+          <div id="mower-fill-meter" class="meter-block" hidden>
+            <span class="meter-label">Mower Fill</span>
+            <div class="meter-track" aria-hidden="true">
+              <div id="mower-fill-bar" class="meter-fill"></div>
+            </div>
           </div>
           <p id="load-status" class="load-status"></p>
         </section>
@@ -51,7 +58,7 @@
         <section class="panel controls-panel">
           <div class="controls-copy">
             <h2>Controls</h2>
-            <p>Move with arrow keys, WASD, or the buttons below. Stand on a mower or bag tile and use Action when it is available.</p>
+            <p>Move with arrow keys, WASD, or the buttons below. Use <strong>Space</strong>, <strong>Enter</strong>, or <strong>E</strong> for Action when it is available.</p>
           </div>
           <div class="touch-controls" aria-label="Touch controls">
             <div class="dpad">
@@ -68,7 +75,7 @@
       </section>
     </main>
 
-    <script src="./game-core.js"></script>
-    <script src="./game.js"></script>
+    <script src="./game-core.js?v=20260616-2"></script>
+    <script src="./game.js?v=20260616-2"></script>
   </body>
 </html>

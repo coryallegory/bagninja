@@ -20,7 +20,9 @@ As of June 16, 2026, the repository currently contains:
 - plain HTML, CSS, and JavaScript rather than the planned TypeScript/Vite scaffold
 - deterministic generated assets under `assets/`
 - asset-backed rendering in the playable page with fallback drawing for missing images
+- `2x` displayed canvas scaling for readability while preserving the low-resolution internal grid
 - real-time fixed-tick simulation shared between browser runtime and tests
+- configurable Curtis indoor/outdoor timing
 - level loading, movement, collision, mower fullness, bag interactions, Curtis detection, police chase, and win/loss checks
 
 The sections below separate the current implementation from the deferred upgrade path so the document stays aligned with the codebase.
@@ -226,9 +228,9 @@ bagninja/
 ### Phase 3: Curtis Rules and Lose State
 
 - Implement Curtis indoor/outdoor timer
-- Implement Curtis patrol limited to his property
-- Implement orthogonal line-of-sight checks
-- Implement escalation: spot -> alert -> police
+- Implement Curtis patrol limited to his property, with pause-at-point wandering and home-return transitions
+- Implement any-angle line-of-sight checks
+- Implement suspicion-based escalation: spot -> alert -> police
 - Make bag discovery a flavor reaction only
 - Implement police arrival / arrest lose sequence
 
@@ -236,7 +238,7 @@ bagninja/
 - LOS blocked by homes and obstacles
 - Curtis never leaves property
 - Detection only occurs when player is on Curtis property and Curtis has LOS while outside
-- Breaking LOS resets or interrupts escalation correctly
+- Breaking LOS decays or interrupts escalation correctly
 
 **Deliverable:** The stealth rule set is complete.
 
@@ -272,11 +274,13 @@ Put these in `src/core/config.ts` so they can be tuned without touching gameplay
 - `defaultGridWidth`
 - `defaultGridHeight`
 - `moveDurationMs`
-- `curtisMinOutdoorDelayMs`
-- `curtisMaxOutdoorDelayMs`
-- `curtisSpotDurationMs`
+- `curtisOutsideDurationMinMs`
+- `curtisOutsideDurationMaxMs`
+- `curtisInsideDurationMinMs`
+- `curtisInsideDurationMaxMs`
+- `curtisNoticeDurationMs`
 - `curtisAlertDurationMs`
-- `curtisAngrySearchDurationMs`
+- `curtisSuspicionDecayDurationMs`
 - `mowerCapacityTiles`
 - `policeArrivalDurationMs`
 - `showTouchControls`
@@ -334,7 +338,13 @@ Only after the full gameplay loop works should final sprite production begin.
 
 ## Immediate Next Steps
 
-1. Update the default level content in `tools/level-default.json` to the latest authored neighborhood.
-2. Add semantic level validation such as mowable reachability and route checks.
-3. Implement indoor/outdoor Curtis timing only after the current real-time chase feel is tuned.
-4. Add win-screen presentation and continue replacing fallback visuals with final art where needed.
+1. Tune Curtis inside/outside timing against `play/levels/level-01.json`.
+2. Add semantic level validation only where it materially protects shipped content.
+3. Add win-screen presentation and continue replacing fallback visuals with final art where needed.
+4. Decide whether the playable page should expose a title/start flow or continue loading directly into gameplay.
+
+## Stretch Backlog
+
+- Add moving car hazards that traverse the road from top-to-bottom or bottom-to-top.
+- Car contact should immediately kill the player and trigger game over.
+- Curtis and police should prioritize avoiding cars over their normal movement decisions.

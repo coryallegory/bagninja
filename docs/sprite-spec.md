@@ -96,6 +96,7 @@ These are the concrete files you should generate first for level rendering.
 |--------------|----------|----------|
 | `H` | `item.house` | `assets/items/house.png` |
 | `F` | `item.fence` | `assets/items/fence.png` |
+| `K` | `item.roadblock` | `assets/items/roadblock.png` |
 | `B` | `item.bush` | `assets/items/bush.png` |
 | `T` | `item.tree` | `assets/items/tree.png` |
 | `L` | `item.tall-grass` | `assets/items/tall-grass.png` |
@@ -103,7 +104,7 @@ Notes:
 
 - `_` means no item and does not need an asset file.
 - `tall-grass.png` should be transparent around the grass shape so the underlying `grass-mowed.png` base remains visible.
-- `house.png`, `fence.png`, `bush.png`, and `tree.png` should also use transparency around the silhouette rather than filling the entire tile.
+- `house.png`, `fence.png`, `roadblock.png`, `bush.png`, and `tree.png` should also use transparency around the silhouette rather than filling the entire tile.
 - If an authored item later becomes animated, keep the same asset ID and add numbered frame files such as `tall-grass-01.png`, `tall-grass-02.png`.
 
 ## Base Tiles
@@ -126,6 +127,7 @@ Notes:
 |----------|------|-----------|-------|
 | `item.house` | item | 16x16 | House frontage block |
 | `item.fence` | item | 16x16 | Fence blocker |
+| `item.roadblock` | item | 16x16 | Roadblock blocker |
 | `item.bush` | item | 16x16 | Bush blocker |
 | `item.tree` | item | 16x16 | Tree blocker |
 | `item.tall-grass` | item | 16x16 | Walkable unmowed-grass representation |

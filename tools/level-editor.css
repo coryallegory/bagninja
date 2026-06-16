@@ -12,6 +12,7 @@
   --pavement: #ddd4c5;
   --house: #7a4e32;
   --fence: #d6b57d;
+  --roadblock: #f26922;
   --bush: #45834f;
   --tree: #29593a;
   --tall-grass: #7dba54;
@@ -187,6 +188,13 @@ button:hover,
 .swatch.pavement { background: var(--pavement); }
 .swatch.house { background: var(--house); }
 .swatch.fence { background: var(--fence); }
+.swatch.roadblock {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--roadblock) 0 5px,
+    #fff6df 5px 8px
+  );
+}
 .swatch.bush { background: var(--bush); }
 .swatch.tree { background: var(--tree); }
 .swatch.tall-grass { background: var(--tall-grass); }
@@ -288,11 +296,13 @@ button:hover,
 
 .grid.render-symbols .cell.item-house::before,
 .grid.render-symbols .cell.item-fence::before,
+.grid.render-symbols .cell.item-roadblock::before,
 .grid.render-symbols .cell.item-bush::before,
 .grid.render-symbols .cell.item-tree::before,
 .grid.render-symbols .cell.item-tall-grass::before,
 .grid.render-images .cell.item-house::before,
 .grid.render-images .cell.item-fence::before,
+.grid.render-images .cell.item-roadblock::before,
 .grid.render-images .cell.item-bush::before,
 .grid.render-images .cell.item-tree::before,
 .grid.render-images .cell.item-tall-grass::before {
@@ -309,6 +319,13 @@ button:hover,
 .grid.render-symbols .cell.item-fence::before {
   background: var(--fence);
   inset: 8px 2px;
+}
+
+.grid.render-symbols .cell.item-roadblock::before {
+  inset: 7px 2px 6px;
+  background:
+    linear-gradient(135deg, transparent 0 18%, #fff6df 18% 32%, transparent 32% 48%, #fff6df 48% 62%, transparent 62%),
+    var(--roadblock);
 }
 
 .grid.render-symbols .cell.item-bush::before {
@@ -330,6 +347,7 @@ button:hover,
 
 .grid.render-images .cell.item-house::before,
 .grid.render-images .cell.item-fence::before,
+.grid.render-images .cell.item-roadblock::before,
 .grid.render-images .cell.item-bush::before,
 .grid.render-images .cell.item-tree::before,
 .grid.render-images .cell.item-tall-grass::before {

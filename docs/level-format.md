@@ -49,7 +49,7 @@ The items layer defines a placed object occupying the cell above the base layer.
 
 This layer is responsible for:
 
-- blockers such as trees, bushes, houses, and fences
+- blockers such as trees, bushes, houses, fences, and roadblocks
 - walkable authored overlays such as tall grass
 - visual authored objects that are not terrain
 
@@ -214,6 +214,7 @@ A concrete starter artifact is included at [neighborhood-01.json](/abs/path/c:/d
 | `_` | Empty | yes | no | No item on cell |
 | `H` | House | no | yes | House frontage / wall object |
 | `F` | Fence | no | yes | Physical boundary blocker |
+| `K` | Roadblock | no | yes | Portable construction-style barrier blocker |
 | `B` | Bush | no | yes | Shrub-style blocker |
 | `T` | Tree | no | yes | Larger yard blocker |
 | `L` | Tall grass | yes | no | Represents unmowed grass when placed over mowed-grass base |
@@ -288,16 +289,16 @@ These checks are part of the design intent, but they are not fully implemented i
 ## Runtime Rules That Affect Authoring
 
 - Tall grass is walkable and does not block LOS.
-- Trees, bushes, fences, and houses block both movement and LOS.
+- Trees, bushes, fences, roadblocks, and houses block both movement and LOS.
 - Unmowed grass is represented by a `Tall grass` item placed over a `Mowed grass` base tile.
 - Mower placement is marker-driven, not item-authored.
 - Mower and bag share a runtime `moveable item` interaction model.
 - The player stands on the mower tile and uses the action button to start or stop it.
-- The player stands on the mower tile and uses the action button to empty it when full.
+- Disengaging from a full mower resets the mower and immediately transfers one bag into the player's hands.
 - The player stands on the bag tile and uses the action button to pick it up.
 - The player drops a carried bag only while standing on Curtis-territory zone tiles.
 - Free moveable items do not stack with each other on the same tile.
-- When a full mower is emptied, the new bag is placed on the nearest valid free tile rather than stacking onto another moveable item.
+- A carried bag may be dropped onto a Curtis-zone tile even if the mower is on that same tile, but never onto another free bag.
 - The current playable runtime also sizes the canvas from the loaded level dimensions rather than hardcoding one canvas resolution.
 
 ## Content Workflow

@@ -44,6 +44,7 @@ Suggested mapping plan:
 | `assets/base/pavement.png` | Modern Exteriors | Prefer a plain walkway tile |
 | `assets/items/house.png` | Modern Exteriors | Crop or select one readable house-front obstacle tile |
 | `assets/items/fence.png` | fantastic fence 16x16 | Export one fence segment that reads well in isolation |
+| `assets/items/roadblock.png` | Generated or custom-edited construction barrier | Orange-white striped single-tile blocker |
 | `assets/items/bush.png` | Modern Exteriors | Prefer a compact obstacle silhouette |
 | `assets/items/tree.png` | Modern Exteriors | Prefer a top-down canopy that stays readable at 16x16 |
 | `assets/items/tall-grass.png` | Generated or custom-edited grass overlay | Best handled as a transparent overlay, not a full opaque tile |
@@ -56,6 +57,7 @@ Suggested mapping plan:
 - Curtis territory is now authored as a separate gameplay zone, so it does not require a distinct base tile asset
 - `house.png` in this project is not a whole building system; it is a single blocking tile representation, so choose readability over realism
 - `fence.png` should be chosen as a single-tile segment that still reads clearly when repeated
+- `roadblock.png` should read as a construction-style portable barrier, distinct from fences at a glance
 - `bag.png` is small and specific enough that generating it may be faster than extracting it
 
 ## Recommended Adoption Workflow
@@ -106,7 +108,7 @@ Requirements:
 ## Prompt: Item Tile Batch
 
 ```text
-Generate six individual 16x16 top-down pixel-art item sprites for a retro suburban stealth game.
+Generate seven individual 16x16 top-down pixel-art item sprites for a retro suburban stealth game.
 
 Style:
 - NES-inspired
@@ -117,6 +119,7 @@ Style:
 Create these files:
 - house.png: top-down house-front obstacle tile, brown suburban roof or structure mass, clearly blocking
 - fence.png: short suburban fence segment seen from top-down, tan or light wood, clearly blocking
+- roadblock.png: orange-and-white portable road barrier, construction style, clearly blocking, distinct from fence
 - bush.png: rounded shrub obstacle, dark green, compact silhouette
 - tree.png: small top-down tree canopy with tiny trunk hint, clearly blocking
 - tall-grass.png: taller unmowed grass tufts, lighter and livelier than mowed grass, transparent around blades

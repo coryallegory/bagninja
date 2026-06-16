@@ -25,6 +25,7 @@
           assets: [
             animatedItem("House", "house"),
             animatedItem("Fence", "fence"),
+            animatedItem("Roadblock", "roadblock"),
             animatedItem("Bush", "bush"),
             animatedItem("Tree", "tree"),
             animatedItem("Tall Grass", "tall-grass")

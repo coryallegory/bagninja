@@ -1,6 +1,6 @@
 {
-  "id": "level-01",
-  "name": "Level 1",
+  "id": "neighborhood-01",
+  "name": "Starter Neighborhood",
   "base": [
     "gggggRRRggggg",
     "gggggRRRggggg",
@@ -28,7 +28,7 @@
     "gggggRRRggggg"
   ],
   "items": [
-    "FFFFF___FFFFF",
+    "FFFFFKKKFFFFF",
     "FLLLL___LLLLF",
     "HLLLL___LTLLF",
     "HLLTL___LLLLH",
@@ -51,7 +51,7 @@
     "HLLLL______HH",
     "FLLTL______HH",
     "FLLLL___LLLLF",
-    "FFFFF___FFFFF"
+    "FFFFFKKKFFFFF"
   ],
   "markers": [
     "_____________",

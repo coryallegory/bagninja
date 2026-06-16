@@ -34,6 +34,7 @@ These are placed over base terrain. Only one item may occupy a cell.
 | Empty | `_` | yes | no | No item on cell |
 | House | `H` | no | yes | House frontage / wall |
 | Fence | `F` | no | yes | Boundary or yard fence |
+| Roadblock | `K` | no | yes | Portable construction-style barrier blocker |
 | Bush | `B` | no | yes | Shrub blocker |
 | Tree | `T` | no | yes | Larger blocker |
 | Tall Grass | `L` | yes | no | Unmowed-grass representation over mowed-grass base |
@@ -111,6 +112,7 @@ Do not expose these yet:
 | Pavement | pale gray tile |
 | House | brown block |
 | Fence | tan line block |
+| Roadblock | orange-white striped barrier |
 | Bush | rounded dark green block |
 | Tree | dark green tree silhouette |
 | Tall Grass | lighter green tuft |
