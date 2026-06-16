@@ -1,0 +1,19 @@
+Plan and design a top down pixel art (NES era) game to be played in browser on either desktop or mobile - so it should take on a standard mobile aspect ratio (can be displayed in same aspect ratio on desktop).
+
+The premise of the game is that you are a lawncare ninja tasked with cutting the lawns of neighbors, and disposing of the yard waste bags at the end of a particular neighbors driveway without them noticing you doing so without permission.
+
+Setting should be a static view of a suburban neighborhood of 6 yards (3 homes and their yards on either side of a street. The homes and yards should be modest yet different from each other. The yards should be predominately lawn with various driveways and plantlife typical of a suburban neighborhood. The street should run vertically through the center of the frame, and the front of the homes facing the street should be all that is visible along the edges of the screen. Between each home there will be a length of fence sealing the travel boundary onscreen for the player.
+
+One of the homes in the middle on one of the sides belongs to Curtis. Curtis will emerge randomly to inspect his yard and the yard waste bags at the end of his driveway and in his yard. When he discovers a new bag he will get upset and run around the yard looking for anyone to blame for a short period of time before giving up and going back into his house.
+
+The player will be tasked with mowing each of the lawns (the lawn will be in chunks of grass squares which will be mowed when moved over with a lawn mower). There is a lawn mower that begins in a yard and the player can engage with the mower and disengage from it with an action button onscreen or keyboard key. The player can move in an up/down/right/left directions with an onscreen d-pad or keyboard arrows.
+
+The lawn mower will have a FULLNESS % that increases with grass mowed. Once the mower is full it will refuse to start and the player cannot engage with it. The player must get next to the mower and an "empty" button will be visible: when pressed the mower will empty and the player will then be holding a full yard waste bag they cannot drop anywhere but on curtis' lawn with the same onscreen button/key which now reads DROP (active and interactable when on curtis lawn).
+
+if curtis can see direct line of sight of the player holding a lawn waste bag or on his property, he will call the police who will come and arrest the player. If the player manages to cut all front yard accessible grass and dump all grass/bags on curtis' lawn, they win. Player, lawnmower, lawn square, yard bag, curtis will all need combinations of relevant sprites.
+
+The map should be laid out in a simplified grid, each movement transitions from grid to grid. The animations should look relatively as smooth as NES games did. Artwork should otherwise be up to the same standards.
+
+On the code side, the codebase and software architecture should be implemented according to best practices of syntax and organization, and be mindful of modularization where appropriate.
+
+I want you to generate an overall plan taking all of the above into account, and adding anything I may have missed as well as questions which are important or where there is ambiguity. I will subsequently have copilot or other agentic processes act further upon that original plan. Please also preserve this initial prompt in a text file alongside a file outlining the project plan you develop as well as any other artifacts.
