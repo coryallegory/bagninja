@@ -133,7 +133,7 @@
     canvasEl.width = width * TILE_SIZE;
     canvasEl.height = height * TILE_SIZE;
     canvasEl.style.width = `${canvasEl.width * DISPLAY_SCALE}px`;
-    canvasEl.style.height = `${canvasEl.height * DISPLAY_SCALE}px`;
+    canvasEl.style.height = "auto";
     canvasFrameEl.style.maxWidth = `${(canvasEl.width * DISPLAY_SCALE) + 32}px`;
   }
 
