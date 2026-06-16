@@ -186,6 +186,8 @@ This system supports designing multiple levels/neighborhoods in the future.
 
 ---
 
+## Audio (Stretch Goal)
+
 - Mower engine hum (looping while engaged)
 - Grass cutting "snip" per tile
 - Bag drop thud
