@@ -2,229 +2,241 @@
 
 ## Game Concept
 
-**Genre:** Top-down stealth/puzzle
-**Theme:** Suburban lawncare mischief
-**Tone:** Humorous, lighthearted
-**Inspiration:** NES-era games (Zelda overworld, Paperboy neighborhood feel)
+**Genre:** Top-down stealth/puzzle  
+**Theme:** Suburban lawncare mischief  
+**Tone:** Humorous and lighthearted  
+**Visual target:** NES-inspired pixel art  
+**Play target:** Browser play on desktop and mobile
 
----
+## Core Gameplay Loop
 
-## Gameplay Loop
+1. Move around the neighborhood on foot.
+2. Move onto the mower cell and use the action button to start it.
+3. While operating the mower, the mower sprite is hidden and the player uses a mower-operating state.
+4. Move across unmowed grass to cut it and fill the mower.
+5. When full, stand on the mower tile and use the action button to empty it and create one yard waste bag on the nearest valid free tile.
+6. Move onto the bag cell and use the action button to pick it up.
+7. Carry the bag onto Curtis' property and use the action button to drop it there.
+8. Repeat until all mowable grass is cut and all generated bags are on Curtis' property.
+9. Avoid being seen by Curtis while on his property.
 
-```
-1. Move adjacent to lawn mower → Engage (ACTION button)
-   - Player and mower merge into a single combined sprite on one grid square
-2. Mow grass tiles — moving onto an unmown tile transitions it to mown state and increases mower fullness
-3. Mower full → Disengage → Player separates to adjacent open square → EMPTY (ACTION button)
-4. Player now carries a yard waste bag
-5. Navigate to Curtis' lawn → DROP (ACTION button)
-6. Repeat until all accessible grass is mowed and all bags are dropped on Curtis' lawn
-7. Avoid Curtis' line of sight while on his property (with or without a bag)
-```
+## Playfield
 
----
+- The current starter content and editor default use a `13x24` gameplay grid.
+- Each tile is `16x16` pixels.
+- The starter level's active gameplay view is `208x384` pixels.
+- The current playable runtime sizes the canvas dynamically from the loaded level dimensions while keeping `16x16` tiles.
+- Mobile controls and action UI should sit below the gameplay area, not on top of it.
+- The road runs vertically through the middle of the neighborhood.
+- Three homes sit on each side of the road.
+- Yards are mostly open to the road and to neighboring yards.
+- Fences only exist where you want actual movement and LOS blocking.
+- A normal mowable yard should usually contain roughly `20-30` mowable cells after pavement and obstacles are accounted for.
 
-## Map Layout
+## Entity Rules
 
-```
- ┌─────────────────────────────────────┐
- │ HOME A │ YARD A │ STREET │ YARD B │ HOME B │  ← Top row
- │ (edge) │ DRIVE A│        │ DRIVE B│ (edge) │
- ├────────┼────────┤        ├────────┼────────┤
- │ FENCE  │        │        │        │ FENCE  │  ← Border between homes
- ├────────┼────────┤        ├────────┼────────┤
- │ HOME C │ YARD C │ STREET │ YARD D │ HOME D │  ← Middle row (Curtis = C or D)
- │ (edge) │ DRIVE C│        │ DRIVE D│ (edge) │
- ├────────┼────────┤        ├────────┼────────┤
- │ FENCE  │        │        │        │ FENCE  │  ← Border between homes
- ├────────┼────────┤        ├────────┼────────┤
- │ HOME E │ YARD E │ STREET │ YARD F │ HOME F │  ← Bottom row
- │ (edge) │ DRIVE E│        │ DRIVE F│ (edge) │
- └─────────────────────────────────────┘
-```
+### Player
 
-- **Street** runs vertically through the center of the canvas, unobstructed from top to bottom
-- **Homes** — only the front edge of each home is visible along the left and right edges of the canvas (top-down view)
-- **Yards and driveways** fill the space between the home edges and the street
-- **Fences** exist only along the borders between homes on the left and right edges of the canvas — they prevent the player from exiting the screen laterally, NOT from moving between yards
-- **Yards are open** to the street and to each other; the player can move freely between yards via the street or through the open grass
-- **Obstacles** (bushes, trees, garden features) are placed logically in yards and provide line-of-sight cover
-- Curtis' home is in the middle position (one side) — this makes his line of sight cover the street and adjacent yards
+- Moves in four directions on the grid
+- Can walk, start mower, stop mower, empty mower, pick up bag, carry bag, and drop bag
+- Starts at a valid player spawn marker
+- Does not drive the world simulation forward by moving or acting
 
----
+### Mower
 
-## Characters
-
-### Player (Ninja)
-- **States:** idle, walking (4 directions), pushing mower (4 directions), carrying bag (4 directions)
-- **Sprites:** 16×16, 2-frame walk cycle per direction minimum
-- **Combined mower sprite:** When engaged with mower, player + mower are rendered as a single combined sprite occupying one grid square
-- **Abilities:** Move, engage/disengage mower, empty mower, drop bag
-- **Start position:** Random accessible square in a non-Curtis yard (not necessarily the same yard as the mower)
+- Starts at a valid mower spawn marker
+- Is a runtime `moveable item`
+- Is non-blocking and may share a cell with the player
+- Cannot share a tile with a free bag
+- Is hidden visually while the player is in the `operate-mower` state
+- Tracks fullness based on how many grass tiles have been mowed
+- Produces exactly one bag when emptied at full capacity
+- Cannot be started while full
 
 ### Curtis
-- **States:** indoors, emerging, patrolling yard, inspecting driveway, discovering bag (surprised), angry searching, returning indoors
-- **Behavior:**
-  - Emerges at random intervals (configurable: 5-15 seconds)
-  - Patrols: walks to driveway end, checks for bags, walks around yard perimeter
-  - On bag discovery: "!" animation, runs around yard for 3-5 seconds looking for culprit
-  - **Detection (multi-stage escalation):**
-    1. **Spot** — Curtis has line-of-sight to player on his property (with or without bag); Curtis stops and faces the player
-    2. **Alert** — If line of sight is NOT broken within a few cycles, Curtis shouts "HEY!" (visual text/bubble)
-    3. **Police** — If line of sight continues unbroken for a few more cycles after alert, Curtis calls police → game over
-  - Detection range: orthogonal line-of-sight (straight lines up/down/left/right, blocked by homes/obstacles)
-  - Curtis can ONLY detect the player when he is physically outside
-  - After angry phase: returns indoors, timer resets
+
+- Is confined to Curtis property
+- Is always outdoors in the current playable runtime
+- Advances on the game simulation tick even when the player stands still
+- Detects the player only when:
+  - the player is on Curtis property
+  - Curtis has orthogonal line of sight to the player
+- Uses multi-stage escalation:
+  - `spot`
+  - `alert`
+  - `police`
+- Reacts to discovering newly dropped bags as flavor only
 
 ### Police
-- **Appears:** From edge of screen after Curtis calls
-- **Behavior:** Moves directly toward player, arrests on contact
-- **Purpose:** Game over trigger (purely a lose-state animation)
 
----
+- Appears only as part of the lose sequence
+- Spawns after Curtis reaches `police` state and yells for police
+- Moves toward the player one grid step per simulation tick
+- Contact with the player triggers the loss presentation
 
-## Mechanics Detail
+## Terrain and Item Rules
 
-### Mowing
-- Each grass tile has state: `unmown` | `mown`
-- Moving onto an unmown tile while engaged with mower → tile becomes mown, mower fullness increases
-- Each mown tile increases fullness by a fixed percentage
-- **Mower capacity:** Configurable. Suggested: 100% = 10 grass tiles (means ~6-7 bags total for full map)
-- Mower cannot be engaged when at 100% fullness
-- **Curtis' lawn is always pre-mown** — it is never mowable by the player
-- **One mower** starts in a random non-Curtis yard (not necessarily the same yard as the player)
+### Base Terrain
 
-### Bag Management
-- Emptying mower produces exactly 1 bag, resets mower to 0%
-- Player moves at same speed while carrying bag
-- Bag can ONLY be dropped on Curtis' property tiles
-- Dropped bags remain visible on Curtis' lawn (he can discover them)
-- Player cannot pick up a dropped bag
+- Mowed grass is walkable and not mowable
+- Road is walkable and not mowable
+- Pavement is walkable and not mowable
 
-### Line of Sight
-- Calculated on grid: orthogonal rays (4 cardinal directions) from Curtis
-- Blocked by: homes, obstacles (bushes, trees, garden features)
-- NOT blocked by: other characters, bags, mowed/unmowed grass, street, fences (fences are only at canvas edges)
-- Check performed each game tick while Curtis is outdoors
-- **Detection trigger:** Player is on Curtis' property tiles (with or without a bag) while Curtis is outside and has line of sight
-- Detection is **multi-stage** — player has time to break LOS before police are called (see Curtis behavior above)
+### Zones
 
-### Win Condition
-- All accessible grass tiles are mown (excludes Curtis' lawn which is pre-mown)
-- All generated bags have been dropped on Curtis' lawn
-- Curtis has NOT called the police on the player
+- Curtis territory is authored in a separate `zones` layer
+- Curtis territory may include both grass and pavement cells
+- Curtis territory does not change the visual base tile by itself
 
-### Lose Condition
-- Curtis escalates through detection stages (spot → alert → police call) without player breaking LOS
-- Police arrive → arrest animation → Game Over screen
+### Blocking Items
 
----
+These block movement and LOS:
 
-## UI Elements
+- house
+- fence
+- bush
+- tree
 
-### HUD (always visible during gameplay)
-- **Mower Fullness Bar** — top of screen, only visible when player is engaged with mower
-- **Action Button** — bottom-right, contextual label:
-  - Near mower (not engaged): "MOW"
-  - Engaged with mower (at mower, full): "EMPTY"
-  - Engaged with mower (not full): "STOP"
-  - Carrying bag, on Curtis' lawn: "DROP"
-  - Carrying bag, not on Curtis' lawn: (grayed "DROP" or hidden)
-- **D-Pad** (mobile only) — bottom-left, 4-directional
+### Non-Blocking Authored Items
 
-### Screens
-- **Title Screen** — "BAG NINJA" title, "TAP TO START" / "PRESS ENTER"
-- **Win Screen** — Victory message, lawn bags piled on Curtis' yard
-- **Lose Screen** — Player in handcuffs, "BUSTED!" text, retry option
+These do not block LOS:
 
----
+- tall grass
 
-## Animation Specs
+Walkability:
 
-- **Frame rate:** 60 FPS render, animations at 8-12 FPS (every 5-8 game frames swap sprite frame) to match NES feel
-- **Movement tween:** ~150ms per grid cell transition (smooth slide between cells)
-- **Curtis "!" reaction:** 500ms pause with exclamation sprite above head
-- **Police siren:** Flashing red/blue color cycle on police sprite
+- tall grass is walkable
 
----
+### Runtime Moveable Items
 
-## Accessibility Grid & Level Definition
+Runtime moveable items are:
 
-The map is defined as a 9×16 grid where each cell has a **terrain type** that determines movement rules, visual rendering, and gameplay behavior. This grid serves as:
+- mower
+- bag
 
-1. **Collision map** — determines which squares are walkable for the player, mower, and Curtis
-2. **Entity placement** — defines valid spawn positions for the player, mower, and Curtis
-3. **Gameplay zones** — identifies Curtis' property tiles for detection/drop rules
-4. **Level design tool** — allows designing and reviewing maps independently of game logic
+Shared behavior:
 
-### Terrain Types
+- free in the world or attached to an actor
+- hidden visually while attached
+- non-blocking by terrain rules
+- cannot stack with another free moveable item on the same tile
+- use the action button for interaction
 
-| Symbol | Terrain | Walkable (Player) | Walkable (Curtis) | Notes |
-|--------|---------|--------------------|--------------------|-------|
-| `.` | Street | ✓ | ✗ | Curtis never leaves his yard |
-| `G` | Grass (unmown) | ✓ | ✗ | Becomes `g` when mowed |
-| `g` | Grass (mown) | ✓ | ✗ | Result of mowing |
-| `C` | Curtis' lawn | ✓ | ✓ | Always pre-mown; bag drop zone |
-| `H` | Home (wall) | ✗ | ✗ | Blocks LOS |
-| `F` | Fence (edge) | ✗ | ✗ | Canvas boundary only |
-| `D` | Driveway | ✓ | ✓ (Curtis' only) | Part of Curtis' property if adjacent to his home |
-| `O` | Obstacle | ✗ | ✗ | Bushes/trees; blocks LOS, provides cover |
-| `P` | Planting | ✗ | ✗ | Decorative, non-walkable |
+## Mowing Rules
 
-### Level Definition Format
+- Unmowed grass is represented by `tall grass` over a `mowed grass` base tile
+- Moving across an unmowed grass tile while operating the mower removes the `tall grass` item and leaves mowed grass underneath
+- Each mowed tile increases mower fullness
+- Curtis territory is never part of the mowable objective
 
-Each level is defined as a JSON object containing:
-- `grid`: 16 rows of 9-character strings using the symbols above
-- `curtisHome`: Which home position belongs to Curtis (e.g., `"C"` or `"D"`)
-- `curtisSpawn`: Grid coordinates where Curtis emerges from his home
-- `curtisDoor`: Grid coordinates of Curtis' door (he returns here)
-- `mowerSpawnZones`: Array of grid regions (non-Curtis yards) for random mower placement
-- `playerSpawnZones`: Array of grid regions (non-Curtis yards) for random player placement
-- `curtisPropertyTiles`: Array of grid coordinates that are considered Curtis' property
+## Bag Rules
 
-This system supports designing multiple levels/neighborhoods in the future.
+- Emptying a full mower creates exactly one bag
+- Bag is a runtime `moveable item`, not an authored level item
+- The player can carry only one bag at a time
+- The player picks up a bag by standing on it and using the action button
+- Bags can be dropped only on Curtis property
+- While carrying a bag, the action control is only available on Curtis property
+- Dropped bags remain where they were placed
+- Dropped bags are walkable and do not block LOS
+- Multiple bags do not create extra mechanical penalties
+- The only gameplay importance of dropped bags is:
+  - they count toward the win condition
+  - Curtis may react to newly noticed bags as flavor
 
----
+## Detection Rules
 
-## Audio (Stretch Goal)
+- Curtis uses orthogonal line of sight only
+- LOS is blocked by:
+  - houses
+  - fences
+  - bushes
+  - trees
+- LOS is not blocked by:
+  - road
+  - grass
+  - tall grass
+  - mower
+  - bags
+  - characters
+- Breaking LOS before the police call resets Curtis back to idle
+- Once Curtis has called the police, the lose sequence continues even if LOS breaks
 
-- Mower engine hum (looping while engaged)
-- Grass cutting "snip" per tile
-- Bag drop thud
-- Curtis "!" alert sound
-- Police siren
-- Win jingle
-- Lose jingle
+## Win Condition
 
----
+The player wins when:
 
-## Resolved Design Decisions
+- all mowable grass tiles are mown
+- all generated bags are on Curtis property
+- the player has not been caught
 
-| # | Question | Resolution |
-|---|----------|------------|
-| 1 | Which yard does the mower start in? | Random non-Curtis yard. Player starts in a random non-Curtis yard (not necessarily the same). |
-| 2 | Can the player mow Curtis' lawn? | **No.** Curtis' lawn is always pre-mown and never mowable. |
-| 3 | Does Curtis detect the player without a bag? | **Yes.** Curtis calls police on any player on his property (with or without bag), but only when he's outside and has LOS. |
-| 4 | Can the player be caught while mowing? | Only if mowing on Curtis' property (which isn't possible since it's not mowable). Being on Curtis' property at all when he's outside triggers detection. |
-| 5 | Fence gaps / yard entry | Fences only exist at canvas edges between homes to prevent exiting the screen. Yards are open to each other and the street. |
-| 6 | Multiple mowers or one? | One mower, starts in a random non-Curtis yard. |
-| 7 | Does Curtis' timer reset? | Yes — after returning indoors, a new random timer starts. |
-| 8 | NES color palette | NES-inspired (not strictly limited to 54 colors). |
-| 9 | Screen orientation on mobile? | Lock portrait orientation, no rotation support. Show "rotate device" message in landscape. |
+## Lose Condition
 
----
+The player loses when the police reach the player after Curtis completes the escalation path.
 
-## Design Assumptions (Confirmed)
+## UI Requirements
 
-- Player does NOT have a "home" — they are a roaming ninja
-- Curtis' lawn is **never mowable** (always pre-mown)
-- Curtis only detects when he is physically outside AND has line of sight
-- Detection is multi-stage with escalation (spot → "HEY!" → police) giving player time to escape
-- Curtis calls police if player is on his property with OR without a bag
-- One mower, stationary when not engaged, starts in random non-Curtis yard
-- Player and mower combine into single sprite when engaged; separation places player on adjacent open square
-- NES-inspired palette (not strictly limited to 54 colors)
-- No scrolling — entire map visible at all times
-- Portrait orientation locked, no rotation
-- Fences exist only at canvas edges between homes (boundary prevention, not yard separation)
-- No multiple levels for MVP (single neighborhood layout)
+### Desktop
+
+- Keyboard movement
+- Keyboard action button
+- Optional on-screen buttons can be hidden
+
+### Mobile
+
+- Directional controls in a reserved bottom control band
+- Contextual action button in that same bottom control band
+- Controls must not cover the gameplay view
+
+## Simulation Rules
+
+- The game runs on a fixed simulation tick independent of player input
+- The current browser implementation uses a `400ms` tick interval
+- Curtis patrol, Curtis detection escalation, and police pursuit all advance on that tick
+- The player may move between ticks, but standing still does not pause the world
+
+## Asset Workflow
+
+- Start with placeholders
+- Replace with final sprite art only after MVP is playable
+- Keep sprite sizes and pivot assumptions stable so placeholder-to-final swap is low risk
+
+## Current Implementation Status
+
+The current browser-playable slice implements:
+
+- level JSON loading
+- dynamic canvas sizing from loaded level dimensions
+- asset-backed tile and entity rendering with code-drawn fallbacks for missing images
+- player movement with collision from current item state
+- idle mower spawn placement
+- mowing by removing `tall grass` while operating the mower
+- action-based mower start and stop
+- mower fullness
+- bag creation from emptying a full mower
+- bag pickup and drop rules
+- win-condition detection for mowing plus bag placement
+- Curtis spawn validation on Curtis-property tiles
+- visible Curtis placeholder rendering
+- basic Curtis patrol movement constrained by Curtis territory
+- orthogonal Curtis LOS checks through blocking items only
+- basic Curtis detection escalation from `spot` to `alert` to `police`
+- fixed-rate autonomous simulation ticking independent of player input
+- police spawn, pursuit, and capture state transitions
+- game-over freeze, fade, and splash overlay after police contact
+
+The current playable slice does not yet implement:
+
+- indoor and outdoor Curtis state timing
+- polished arrest artwork and final presentation assets
+- win screen presentation
+
+## Open Scope Boundaries
+
+These are intentionally out of MVP unless later requested:
+
+- Multiple levels
+- Persistent progression
+- Score system
+- Advanced pathfinding behaviors
+- Complex audio system

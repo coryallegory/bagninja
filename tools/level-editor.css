@@ -1,0 +1,441 @@
+:root {
+  --bg: #e8e0cf;
+  --panel: #f8f4ea;
+  --panel-2: #efe6d4;
+  --ink: #1f1b16;
+  --muted: #6a6257;
+  --line: #b8a98f;
+  --accent: #c2642f;
+  --grass-mown: #7aa35a;
+  --curtis: #b84036;
+  --road: #58595b;
+  --pavement: #ddd4c5;
+  --house: #7a4e32;
+  --fence: #d6b57d;
+  --bush: #45834f;
+  --tree: #29593a;
+  --tall-grass: #7dba54;
+  --mower: #c64334;
+  --curtis-marker: #211d17;
+  --player-marker: #315ed1;
+  --mower-marker: #d96d18;
+  --police-marker: #9d2448;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  background:
+    radial-gradient(circle at top left, #f8f0de, transparent 28%),
+    linear-gradient(180deg, #dbcbb0, #ccb896);
+  color: var(--ink);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: rgba(248, 244, 234, 0.95);
+  border-right: 1px solid var(--line);
+  padding: 16px;
+  overflow: auto;
+}
+
+.sidebar-header h1,
+.json-toolbar h2,
+.panel h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.sidebar-header p,
+.json-toolbar span,
+.layer-help,
+.load-status {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.load-status.is-error {
+  color: #8d2a1d;
+}
+
+.load-status.is-ok {
+  color: #205d27;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.grid-size-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.field input,
+#json-output {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fffdf7;
+}
+
+.button-row,
+.stack {
+  display: grid;
+  gap: 8px;
+}
+
+.button-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+button,
+.file-button {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+button:hover,
+.file-button:hover {
+  border-color: var(--accent);
+}
+
+.layer-button.is-active,
+.display-button.is-active,
+.palette-button.is-active {
+  background: #f6d1b8;
+  border-color: var(--accent);
+}
+
+.file-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.file-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.palette {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.palette-button {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.swatch {
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+
+.swatch.grass-mown { background: var(--grass-mown); }
+.swatch.zone-curtis {
+  background: transparent;
+  border: 2px solid var(--curtis);
+}
+.swatch.road { background: var(--road); }
+.swatch.pavement { background: var(--pavement); }
+.swatch.house { background: var(--house); }
+.swatch.fence { background: var(--fence); }
+.swatch.bush { background: var(--bush); }
+.swatch.tree { background: var(--tree); }
+.swatch.tall-grass { background: var(--tall-grass); }
+.swatch.erase {
+  background: linear-gradient(135deg, #f7f2e5 0%, #f7f2e5 45%, #be4f39 45%, #be4f39 55%, #f7f2e5 55%);
+}
+.swatch.marker-curtis,
+.legend-marker.curtis { background: var(--curtis-marker); }
+.swatch.marker-player,
+.legend-marker.player { background: var(--player-marker); }
+.swatch.marker-mower,
+.legend-marker.mower { background: var(--mower-marker); }
+.swatch.marker-police,
+.legend-marker.police { background: var(--police-marker); }
+
+.validation-list,
+.legend {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.validation-list li {
+  margin-bottom: 6px;
+}
+
+.validation-list .ok {
+  color: #205d27;
+}
+
+.validation-list .error {
+  color: #8d2a1d;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(320px, 420px);
+  gap: 16px;
+  padding: 16px;
+}
+
+.editor-panel,
+.json-panel {
+  background: rgba(248, 244, 234, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.editor-toolbar,
+.json-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(13, 30px);
+  grid-template-rows: repeat(24, 30px);
+  gap: 1px;
+  background: #544a3e;
+  border: 3px solid #544a3e;
+  border-radius: 8px;
+  width: fit-content;
+  user-select: none;
+}
+
+.cell {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.grid.render-symbols .cell.base-grass-mown { background: var(--grass-mown); }
+.grid.render-symbols .cell.base-road { background: var(--road); }
+.grid.render-symbols .cell.base-pavement { background: var(--pavement); }
+
+.grid.render-images .cell {
+  background-color: transparent;
+  background-image: var(--base-image);
+}
+
+.grid .cell.zone-curtis {
+  box-shadow: inset 0 0 0 2px var(--curtis);
+}
+
+.grid.render-symbols .cell.item-house::before,
+.grid.render-symbols .cell.item-fence::before,
+.grid.render-symbols .cell.item-bush::before,
+.grid.render-symbols .cell.item-tree::before,
+.grid.render-symbols .cell.item-tall-grass::before,
+.grid.render-images .cell.item-house::before,
+.grid.render-images .cell.item-fence::before,
+.grid.render-images .cell.item-bush::before,
+.grid.render-images .cell.item-tree::before,
+.grid.render-images .cell.item-tall-grass::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+}
+
+.grid.render-symbols .cell.item-house::before {
+  inset: 5px;
+  background: var(--house);
+}
+
+.grid.render-symbols .cell.item-fence::before {
+  background: var(--fence);
+  inset: 8px 2px;
+}
+
+.grid.render-symbols .cell.item-bush::before {
+  background: var(--bush);
+  border-radius: 999px;
+  inset: 6px 5px 7px;
+}
+
+.grid.render-symbols .cell.item-tree::before {
+  background: var(--tree);
+  inset: 4px;
+  clip-path: polygon(50% 0%, 100% 40%, 80% 100%, 20% 100%, 0% 40%);
+}
+
+.grid.render-symbols .cell.item-tall-grass::before {
+  background: linear-gradient(90deg, transparent 0 15%, var(--tall-grass) 15% 25%, transparent 25% 35%, var(--tall-grass) 35% 45%, transparent 45% 55%, var(--tall-grass) 55% 65%, transparent 65% 75%, var(--tall-grass) 75% 85%, transparent 85%);
+  inset: 7px 5px 6px;
+}
+
+.grid.render-images .cell.item-house::before,
+.grid.render-images .cell.item-fence::before,
+.grid.render-images .cell.item-bush::before,
+.grid.render-images .cell.item-tree::before,
+.grid.render-images .cell.item-tall-grass::before {
+  inset: 0;
+  background-image: var(--item-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.grid.render-symbols .cell.marker-curtis::after,
+.grid.render-symbols .cell.marker-player::after,
+.grid.render-symbols .cell.marker-mower::after,
+.grid.render-symbols .cell.marker-police::after,
+.grid.render-images .cell.marker-curtis::after,
+.grid.render-images .cell.marker-player::after,
+.grid.render-images .cell.marker-mower::after,
+.grid.render-images .cell.marker-police::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+}
+
+.grid.render-symbols .cell.marker-curtis::after,
+.grid.render-symbols .cell.marker-player::after,
+.grid.render-symbols .cell.marker-mower::after {
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border: 2px solid #fffdf7;
+}
+
+.grid.render-symbols .cell.marker-curtis::after,
+.grid.render-symbols .cell.marker-player::after,
+.grid.render-symbols .cell.marker-mower::after {
+  border-radius: 999px;
+}
+
+.grid.render-symbols .cell.marker-curtis::after { background: var(--curtis-marker); }
+.grid.render-symbols .cell.marker-player::after { background: var(--player-marker); }
+.grid.render-symbols .cell.marker-mower::after { background: var(--mower-marker); }
+.grid.render-symbols .cell.marker-police::after {
+  background: linear-gradient(90deg, var(--player-marker) 50%, var(--police-marker) 50%);
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border: 2px solid #fffdf7;
+}
+
+.grid.render-images .cell.marker-curtis::after,
+.grid.render-images .cell.marker-player::after,
+.grid.render-images .cell.marker-mower::after,
+.grid.render-images .cell.marker-police::after {
+  inset: 0;
+  background-image: var(--marker-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.cell.active-paint {
+  outline: 2px dashed #1f1b16;
+  outline-offset: -2px;
+}
+
+#json-output {
+  min-height: 720px;
+  resize: vertical;
+  white-space: pre;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.85rem;
+}
+
+code {
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.legend-marker {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border: 2px solid #fffdf7;
+  vertical-align: middle;
+}
+
+.legend-marker.curtis,
+.legend-marker.player,
+.legend-marker.mower {
+  border-radius: 999px;
+}
+
+.legend-marker.police {
+  background: linear-gradient(90deg, var(--player-marker) 50%, var(--police-marker) 50%);
+}
+
+@media (max-width: 1200px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}

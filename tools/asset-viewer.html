@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bag Ninja Asset Viewer</title>
+    <link rel="stylesheet" href="./asset-viewer.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="page-header">
+        <h1>Bag Ninja Asset Viewer</h1>
+        <p>Preview base tiles, items, and entity-state sprites from the current asset contract. Animated variants play automatically when numbered frame files exist.</p>
+      </header>
+
+      <section class="panel controls-panel">
+        <div class="control-row">
+          <label class="field">
+            <span>Scale</span>
+            <input id="scale-range" type="range" min="2" max="12" value="6">
+          </label>
+          <label class="field">
+            <span>Frame Rate</span>
+            <input id="fps-range" type="range" min="1" max="12" value="4">
+          </label>
+        </div>
+        <div class="status-row">
+          <span><strong>Scale:</strong> <span id="scale-value">6x</span></span>
+          <span><strong>FPS:</strong> <span id="fps-value">4</span></span>
+          <span><strong>Missing assets:</strong> <span id="missing-count">0</span></span>
+        </div>
+      </section>
+
+      <div id="viewer-root" class="viewer-root"></div>
+    </main>
+
+    <script src="./asset-viewer.js"></script>
+  </body>
+</html>

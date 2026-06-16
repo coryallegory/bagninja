@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bag Ninja Level Editor</title>
+    <link rel="stylesheet" href="./level-editor.css">
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <header class="sidebar-header">
+          <h1>Bag Ninja Level Editor</h1>
+          <p>Standalone `base / items / markers / zones` level authoring tool.</p>
+        </header>
+
+        <section class="panel">
+          <label class="field">
+            <span>Level Id</span>
+            <input id="level-id" type="text">
+          </label>
+          <label class="field">
+            <span>Level Name</span>
+            <input id="level-name" type="text">
+          </label>
+          <div class="grid-size-fields">
+            <label class="field">
+              <span>Grid Width</span>
+              <input id="grid-width" type="number" min="1" step="1">
+            </label>
+            <label class="field">
+              <span>Grid Height</span>
+              <input id="grid-height" type="number" min="1" step="1">
+            </label>
+          </div>
+          <button id="resize-grid" type="button">Resize Grid</button>
+        </section>
+
+        <section class="panel">
+          <h2>Layer</h2>
+          <div class="button-row">
+            <button data-layer="base" class="layer-button is-active" type="button">Base</button>
+            <button data-layer="items" class="layer-button" type="button">Items</button>
+            <button data-layer="markers" class="layer-button" type="button">Markers</button>
+            <button data-layer="zones" class="layer-button" type="button">Zones</button>
+          </div>
+          <p id="layer-help" class="layer-help"></p>
+          <div id="tool-palette" class="palette"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Display</h2>
+          <div class="button-row">
+            <button id="display-symbols" class="display-button is-active" type="button">Symbols</button>
+            <button id="display-images" class="display-button" type="button">Assets</button>
+          </div>
+          <p class="layer-help">Switch between editor placeholder symbols and image-backed asset previews.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Actions</h2>
+          <div class="stack">
+            <button id="load-default" type="button">Load Default Level</button>
+            <input id="default-file-input" type="file" accept=".json,application/json" hidden>
+            <label class="file-button">
+              <span>Import JSON File</span>
+              <input id="file-input" type="file" accept=".json,application/json">
+            </label>
+            <button id="import-text" type="button">Apply JSON From Editor</button>
+            <button id="copy-json" type="button">Copy JSON</button>
+            <button id="download-json" type="button">Download JSON</button>
+          </div>
+          <p id="load-status" class="load-status"></p>
+        </section>
+
+        <section class="panel">
+          <h2>Validation</h2>
+          <ul id="validation-list" class="validation-list"></ul>
+        </section>
+
+        <section class="panel">
+          <h2>Legend</h2>
+          <ul class="legend">
+            <li><span class="legend-marker curtis"></span>Curtis Spawn</li>
+            <li><span class="legend-marker player"></span>Player Spawn</li>
+            <li><span class="legend-marker mower"></span>Mower Spawn</li>
+            <li><span class="legend-marker police"></span>Police Spawn</li>
+          </ul>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <section class="editor-panel">
+          <div class="editor-toolbar">
+            <div class="meta">
+              <strong>Grid:</strong> <span id="grid-dimensions">13 x 24</span>
+              <span id="active-tool-label"></span>
+            </div>
+            <div class="meta">
+              <strong>Mowable Cells:</strong> <span id="mowable-count">0</span>
+            </div>
+          </div>
+          <div id="grid" class="grid" aria-label="Level grid"></div>
+        </section>
+
+        <section class="json-panel">
+          <div class="json-toolbar">
+            <h2>JSON</h2>
+            <span>Paste or edit JSON here, then click `Apply JSON From Editor` to load it at whatever grid size the base layer defines.</span>
+          </div>
+          <textarea id="json-output" spellcheck="false" placeholder='Paste a level JSON object here, or edit the current one and click "Apply JSON From Editor". Optional layers will normalize to the base dimensions.'></textarea>
+        </section>
+      </main>
+    </div>
+
+    <script src="./level-editor.js"></script>
+  </body>
+</html>

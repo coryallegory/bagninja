@@ -1,0 +1,162 @@
+:root {
+  --bg: #e7dcc6;
+  --panel: rgba(249, 244, 234, 0.96);
+  --panel-2: #efe4d0;
+  --ink: #1f1b16;
+  --muted: #6d6458;
+  --line: #b5a58c;
+  --accent: #ba6330;
+  --preview-size: 96px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  background:
+    radial-gradient(circle at top left, #f9efdc, transparent 24%),
+    linear-gradient(180deg, #ddcfb4, #c8b391);
+}
+
+.app {
+  padding: 18px;
+}
+
+.page-header,
+.panel,
+.section {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(38, 28, 18, 0.12);
+}
+
+.page-header,
+.panel {
+  padding: 14px 16px;
+}
+
+.page-header h1,
+.section h2,
+.group h3 {
+  margin: 0;
+}
+
+.page-header p,
+.field span,
+.section-copy,
+.asset-card .meta,
+.missing-note {
+  color: var(--muted);
+}
+
+.controls-panel {
+  margin-top: 14px;
+}
+
+.control-row,
+.status-row,
+.asset-grid,
+.subgrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.status-row {
+  margin-top: 10px;
+  gap: 20px;
+}
+
+.viewer-root {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.section {
+  padding: 14px 16px;
+}
+
+.section-copy {
+  margin: 6px 0 0;
+}
+
+.group {
+  margin-top: 14px;
+}
+
+.asset-grid,
+.subgrid {
+  margin-top: 12px;
+}
+
+.asset-card {
+  width: 180px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+  padding: 10px;
+}
+
+.asset-card h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.preview {
+  width: var(--preview-size);
+  height: var(--preview-size);
+  margin: 0 auto 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background:
+    linear-gradient(45deg, #f2ecde 25%, transparent 25%, transparent 75%, #f2ecde 75%),
+    linear-gradient(45deg, #f2ecde 25%, transparent 25%, transparent 75%, #f2ecde 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  display: grid;
+  place-items: center;
+}
+
+.preview img {
+  width: calc(var(--preview-size) - 16px);
+  height: calc(var(--preview-size) - 16px);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  object-fit: contain;
+}
+
+.preview.is-missing img {
+  opacity: 0;
+}
+
+.asset-card .meta {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+.asset-card code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.78rem;
+}
+
+.missing-note {
+  font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .asset-card {
+    width: 160px;
+  }
+}
