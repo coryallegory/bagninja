@@ -24,6 +24,8 @@ Bag Ninja currently runs as a plain HTML/CSS/JavaScript browser prototype with a
 - Curtis patrol, suspicion-based detection, and police pursuit all run through the shared core in [play/game-core.js](/abs/path/c:/dev/bagninja/play/game-core.js:1).
 - The playable page now renders from `assets/` with code-drawn fallback visuals if a requested image is missing.
 - On mobile widths, touch controls are overlaid inside the play area as faint thumb anchors: a left joystick and a right action circle.
+- Carrying a bag swaps the player to the `player-carry-*` sprite set.
+- Winning now triggers a 2-second celebration, then a sliding win overlay that reports completion time and Curtis alert seconds.
 
 ## Tests
 

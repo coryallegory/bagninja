@@ -249,13 +249,15 @@ The current browser-playable slice implements:
 - configurable suspicion-based Curtis detection escalation from `spot` to `alert` to `police`
 - fixed-rate autonomous simulation ticking independent of player input
 - police spawn, pursuit, and capture state transitions
+- player carry-state rendering with dedicated `player-carry-*` sprites while holding a bag
+- stronger red Curtis alert outline during `spot`, `alert`, and `police`
+- win presentation flow: 2-second celebration, sliding win splash overlay, delayed stat reveal
 - game-over freeze, fade, and splash overlay after police contact
 - hidden runtime spawn markers in the playable view
 
 The current playable slice does not yet implement:
 
 - polished arrest artwork and final presentation assets
-- win screen presentation
 
 ## Open Scope Boundaries
 

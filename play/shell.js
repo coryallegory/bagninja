@@ -28,11 +28,13 @@
   const pauseLblEls    = [document.getElementById("pause-lbl-0"), document.getElementById("pause-lbl-1")];
   const impactFlashEl  = document.getElementById("impact-flash");
   const fadeCurtainEl  = document.getElementById("fade-curtain");
+  const WIN_STATS_REVEAL_DELAY_MS = 1700;
 
   // ── Shell state ───────────────────────────────────────────────
 
   let currentPhase  = "title";
   let activeHeldKey = null;
+  let winStatsTimerId = null;
 
   const touchState = { pointerId: null, direction: null };
 
@@ -47,6 +49,11 @@
   game.on("phase", ({ phase }) => {
     const prev = currentPhase;
     currentPhase = phase;
+
+    if (winStatsTimerId) {
+      window.clearTimeout(winStatsTimerId);
+      winStatsTimerId = null;
+    }
 
     pauseButtonEl.disabled = (phase !== "playing" && phase !== "paused");
 
@@ -81,6 +88,13 @@
     if (phase === "winning") {
       winScreenEl.setAttribute("aria-hidden", "false");
       winScreenEl.classList.add("is-active");
+      winScreenEl.classList.remove("is-stats-visible");
+      winPlayAgainEl.hidden = true;
+      winPlayAgainEl.style.animation = "";
+      winStatsTimerId = window.setTimeout(() => {
+        winScreenEl.classList.add("is-stats-visible");
+        winStatsTimerId = null;
+      }, WIN_STATS_REVEAL_DELAY_MS);
     }
 
     if (phase === "gameover") {
@@ -89,9 +103,9 @@
     }
   });
 
-  game.on("win", ({ time, alertTime }) => {
+  game.on("win", ({ time, alertSeconds }) => {
     winTimeEl.textContent      = time;
-    winAlertTimeEl.textContent = alertTime;
+    winAlertTimeEl.textContent = alertSeconds;
   });
 
   game.on("gameover", ({ mowed, total }) => {
@@ -146,6 +160,7 @@
     [winScreenEl, gameOverScreenEl].forEach(el => { el.style.transition = "none"; });
 
     winScreenEl.classList.remove("is-active", "is-hiding");
+    winScreenEl.classList.remove("is-stats-visible");
     winScreenEl.setAttribute("aria-hidden", "true");
     winPlayAgainEl.hidden = true;
     winPlayAgainEl.style.animation = "";

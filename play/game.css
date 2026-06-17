@@ -421,6 +421,16 @@ canvas.greyscale-4 { filter: grayscale(100%); }
 .win-screen.is-active { transform: translateY(0); pointer-events: auto; }
 .win-screen.is-hiding { transform: translateY(-100%); pointer-events: none; transition: transform 500ms ease-in; }
 
+.win-cutscene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  object-fit: fill;
+}
+
 .win-stats {
   position: absolute;
   bottom: 32px;
@@ -432,6 +442,13 @@ canvas.greyscale-4 { filter: grayscale(100%); }
   line-height: 2.2;
   color: #e8e8d8;
   text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 220ms ease-out, transform 220ms ease-out;
+}
+.win-screen.is-stats-visible .win-stats {
+  opacity: 1;
+  transform: translateY(0);
 }
 .win-stats p      { margin: 0; }
 .win-stats strong { color: #f8e818; }

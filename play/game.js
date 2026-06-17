@@ -7,6 +7,8 @@
   const SIMULATION_TICK_MS = 400;
   const HELD_MOVE_INTERVAL_MS = Math.round(SIMULATION_TICK_MS / 1.5); // ~267ms
   const MOVE_ANIMATION_MS = 220;
+  const WIN_CELEBRATION_MS = 2000;
+  const WIN_PLAY_AGAIN_DELAY_MS = 3200;
   const ASSET_PATHS = {
     base: {
       g: "../assets/base/grass-mowed.png",
@@ -87,6 +89,10 @@
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+
+  function formatSeconds(ms) {
+    return `${(ms / 1000).toFixed(1)}s`;
   }
 
   const CAM_MARGIN = 4;
@@ -266,21 +272,21 @@
   }
 
   function showWinScreen() {
-    if (state.presentation.phase !== "playing") {
+    if (state.presentation.phase !== "playing" && state.presentation.phase !== "celebrating") {
       return;
     }
     state.presentation.phase = "winning";
     const elapsed = Date.now() - state.presentation.startTimeMs;
     const alertMs = state.game ? (state.game.curtisAlertMs || 0) : 0;
     emit("phase", { phase: "winning" });
-    emit("win", { time: formatTime(elapsed), alertTime: formatTime(alertMs) });
+    emit("win", { time: formatTime(elapsed), alertSeconds: formatSeconds(alertMs) });
     emit("prompt", { visible: false });
     emit("action-state", { enabled: false });
     state.presentation.playAgainTimerId = window.setTimeout(() => {
       state.presentation.playAgainReady = true;
       emit("prompt", { visible: true });
       emit("action-state", { enabled: true });
-    }, 5000);
+    }, WIN_PLAY_AGAIN_DELAY_MS);
     render();
   }
 
@@ -343,7 +349,7 @@
         state.presentation.celebrationRafId = null;
       }
       showWinScreen();
-    }, 2500);
+    }, WIN_CELEBRATION_MS);
   }
 
   function triggerPlayAgain() {
@@ -1014,7 +1020,6 @@
     }
 
     const CUTSCENE = {
-      winning:  "../assets/cutscenes/cutscene-win.png",
       gameover: "../assets/cutscenes/cutscene-lose.png",
     };
     if (CUTSCENE[state.presentation.phase]) {
