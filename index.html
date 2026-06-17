@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Bag Ninja</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./game.css?v=20260617-17">
+  </head>
+  <body>
+
+    <!-- Main layout -->
+    <main class="app">
+
+      <!-- Virtual handheld device -->
+      <div class="device">
+
+        <div class="device-header">
+          <span class="device-brand">BAG NINJA</span>
+          <span class="device-led" aria-hidden="true"></span>
+        </div>
+
+        <div class="device-screen-surround">
+          <div id="canvas-frame" class="device-screen-bezel">
+            <canvas id="game-canvas" aria-label="Bag Ninja gameplay area"></canvas>
+            <div class="screen-scanlines" aria-hidden="true"></div>
+            <div id="impact-flash" aria-hidden="true"></div>
+            <div id="fade-curtain" aria-hidden="true"></div>
+
+            <section id="title-screen" class="title-screen" aria-label="Title screen">
+              <img src="./assets/cutscenes/cutscene-start.png" class="title-cutscene" alt="" aria-hidden="true">
+              <p id="title-prompt" class="screen-prompt" hidden>START</p>
+            </section>
+
+            <section id="win-screen" class="win-screen" aria-hidden="true" aria-label="Mission complete">
+              <img src="./assets/cutscenes/cutscene-win.png" class="win-cutscene" alt="" aria-hidden="true">
+              <div class="win-stats">
+                <p>TIME <strong id="win-time">—</strong></p>
+                <p>ALERT SECS <strong id="win-alert-time">—</strong></p>
+              </div>
+              <p id="win-play-again" class="play-again-prompt" hidden>PLAY AGAIN</p>
+            </section>
+
+            <section id="game-over-screen" class="game-over-screen" aria-hidden="true" aria-label="Game over">
+              <div class="game-over-stats">
+                <p>MOWED <strong id="gameover-mowed">—</strong></p>
+              </div>
+              <p id="gameover-play-again" class="play-again-prompt" hidden>PLAY AGAIN</p>
+            </section>
+
+            <section id="pause-screen" class="pause-screen" aria-hidden="true" aria-label="Pause menu">
+              <div class="pause-panel">
+                <h2 id="pause-title" class="pause-title">PAUSED</h2>
+                <p id="pause-message" class="pause-message" hidden></p>
+                <nav class="pause-nav">
+                  <div class="pause-option" id="pause-opt-0">
+                    <span class="pause-arrow" aria-hidden="true">▶</span>
+                    <span id="pause-lbl-0">BACK</span>
+                  </div>
+                  <div class="pause-option" id="pause-opt-1">
+                    <span class="pause-arrow" aria-hidden="true">▶</span>
+                    <span id="pause-lbl-1">RESET</span>
+                  </div>
+                </nav>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+        <div class="device-controls">
+
+          <div class="controls-left">
+            <div
+              id="joystick"
+              class="dpad"
+              aria-label="Movement"
+              role="application"
+            >
+              <span class="dpad-arm dpad-arm-h" aria-hidden="true"></span>
+              <span class="dpad-arm dpad-arm-v" aria-hidden="true"></span>
+              <span class="dpad-arrow dpad-up"    aria-hidden="true"></span>
+              <span class="dpad-arrow dpad-right" aria-hidden="true"></span>
+              <span class="dpad-arrow dpad-down"  aria-hidden="true"></span>
+              <span class="dpad-arrow dpad-left"  aria-hidden="true"></span>
+              <span id="joystick-knob" class="joystick-knob-hidden" aria-hidden="true"></span>
+            </div>
+          </div>
+
+          <div class="controls-center" aria-hidden="true"></div>
+
+          <div class="controls-right">
+            <div class="button-cluster">
+              <button id="pause-button"  class="device-btn btn-pause"  type="button" aria-label="Pause / Menu"></button>
+              <button id="action-button" class="device-btn btn-action" type="button"></button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="device-footer" aria-hidden="true">
+          <div class="device-speaker">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- JS-referenced elements not part of device UI -->
+      <div class="utility-hidden" aria-hidden="true">
+        <span id="player-state"></span>
+        <span id="mowed-count"></span>
+        <span id="curtis-state"></span>
+        <span id="mower-fill-stat" hidden>
+          <span id="mower-fill-text"></span>
+        </span>
+        <div id="mower-fill-meter" hidden><div id="mower-fill-bar"></div></div>
+        <p id="load-status"></p>
+        <button id="load-default"   type="button">Load Level</button>
+        <button id="restart-level"  type="button">Restart</button>
+        <label><input id="level-file-input" type="file" accept=".json,application/json"></label>
+      </div>
+
+    </main>
+
+    <script src="./game-core.js?v=20260617-16"></script>
+    <script src="./game.js?v=20260617-16"></script>
+    <script src="./shell.js?v=20260617-16"></script>
+  </body>
+</html>
