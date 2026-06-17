@@ -85,7 +85,6 @@
   const mowableCountEl = document.getElementById("mowable-count");
   const layerHelpEl = document.getElementById("layer-help");
   const loadStatusEl = document.getElementById("load-status");
-  const defaultFileInputEl = document.getElementById("default-file-input");
 
   document.querySelectorAll(".layer-button").forEach((button) => {
     button.addEventListener("click", () => {
@@ -111,7 +110,7 @@
   });
 
   document.getElementById("load-default").addEventListener("click", () => {
-    loadDefaultLevel(true);
+    loadDefaultLevel();
   });
 
   document.getElementById("import-text").addEventListener("click", () => {
@@ -141,16 +140,6 @@
       return;
     }
     importLevel(await file.text(), file.name);
-    event.target.value = "";
-  });
-
-  defaultFileInputEl.addEventListener("change", async (event) => {
-    const [file] = event.target.files;
-    if (!file) {
-      return;
-    }
-    importLevel(await file.text(), file.name);
-    setLoadStatus(`Loaded default level from ${file.name}.`, "ok");
     event.target.value = "";
   });
 
@@ -275,15 +264,7 @@
     render();
   }
 
-  async function loadDefaultLevel(showAlertOnFailure) {
-    if (window.location.protocol === "file:") {
-      setLoadStatus("Direct file mode cannot auto-load level-default.json. Click again and choose tools/level-default.json from the file picker.", "error");
-      if (showAlertOnFailure) {
-        defaultFileInputEl.click();
-      }
-      return;
-    }
-
+  async function loadDefaultLevel() {
     try {
       const response = await fetch(DEFAULT_LEVEL_URL, { cache: "no-store" });
       if (!response.ok) {
@@ -295,9 +276,6 @@
       render();
     } catch (error) {
       setLoadStatus(`Unable to load default level from ${DEFAULT_LEVEL_URL}: ${error.message}`, "error");
-      if (showAlertOnFailure) {
-        window.alert(`Unable to load default level from ${DEFAULT_LEVEL_URL}: ${error.message}`);
-      }
     }
   }
 
@@ -580,9 +558,5 @@
   }
 
   render();
-  if (window.location.protocol === "file:") {
-    setLoadStatus("Open over http(s) for automatic default loading, or click Load Default Level and choose tools/level-default.json.", "error");
-  } else {
-    loadDefaultLevel(false);
-  }
+  loadDefaultLevel();
 }());

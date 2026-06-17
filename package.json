@@ -2,6 +2,8 @@
   "name": "bagninja",
   "private": true,
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "play": "node tools/dev-server.js play",
+    "edit": "node tools/dev-server.js edit"
   }
 }

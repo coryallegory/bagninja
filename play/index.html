@@ -2,81 +2,119 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bag Ninja Playtest</title>
-    <link rel="stylesheet" href="./game.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Bag Ninja</title>
+    <link rel="stylesheet" href="./game.css?v=20260617-1">
   </head>
   <body>
+
+    <!-- Full-viewport overlay screens (z-index above device) -->
+
+    <section id="title-screen" class="title-screen" aria-label="Title screen">
+      <div class="title-card">
+        <h1 class="title-logo">Bag Ninja</h1>
+        <p class="placeholder-art">[ Title art placeholder ]</p>
+        <p id="title-prompt" class="screen-prompt" hidden>Press any key or tap to play</p>
+      </div>
+    </section>
+
+    <section id="win-screen" class="win-screen" aria-hidden="true">
+      <div class="win-card">
+        <h2>Mission Complete</h2>
+        <p class="placeholder-art">[ Win art placeholder ]</p>
+        <div class="win-stats">
+          <p>Time: <strong id="win-time">—</strong></p>
+          <p>Curtis on alert: <strong id="win-alert-time">—</strong></p>
+        </div>
+        <p id="win-play-again" class="play-again-prompt" hidden>Play Again</p>
+      </div>
+    </section>
+
+    <section id="game-over-screen" class="game-over-screen" aria-hidden="true">
+      <div class="game-over-card">
+        <h2>Game Over</h2>
+        <p class="placeholder-art">[ Arrest art placeholder ]</p>
+        <div class="game-over-stats">
+          <p>Grass mowed: <strong id="gameover-mowed">—</strong></p>
+        </div>
+        <p id="gameover-play-again" class="play-again-prompt" hidden>Play Again</p>
+      </div>
+    </section>
+
+    <!-- Main layout -->
     <main class="app">
-      <section class="shell">
-        <header class="panel header-panel">
-          <div>
-            <h1>Bag Ninja</h1>
-            <p>Playable vertical slice for level loading, movement, mowing, and runtime moveable-item interactions.</p>
-          </div>
-          <div class="toolbar">
-            <button id="load-default" type="button">Load Default Level</button>
-            <input id="default-file-input" type="file" accept=".json,application/json" hidden>
-            <label class="file-button">
-              <span>Import Level JSON</span>
-              <input id="level-file-input" type="file" accept=".json,application/json">
-            </label>
-            <button id="restart-level" type="button">Restart Level</button>
-          </div>
-        </header>
 
-        <section class="panel status-panel">
-          <div class="stats">
-            <span><strong>State:</strong> <span id="player-state">On Foot</span></span>
-            <span><strong>Curtis:</strong> <span id="curtis-state">-</span></span>
-            <span><strong>Mowed:</strong> <span id="mowed-count">0 / 0</span></span>
-            <span id="mower-fill-stat" hidden><strong>Mower:</strong> <span id="mower-fill-text">0 / 0</span></span>
-          </div>
-          <div id="mower-fill-meter" class="meter-block" hidden>
-            <span class="meter-label">Mower Fill</span>
-            <div class="meter-track" aria-hidden="true">
-              <div id="mower-fill-bar" class="meter-fill"></div>
-            </div>
-          </div>
-          <p id="load-status" class="load-status"></p>
-        </section>
+      <!-- Virtual handheld device -->
+      <div class="device">
 
-        <section class="play-area">
-          <div id="canvas-frame" class="canvas-frame">
+        <div class="device-header">
+          <span class="device-brand">BAG NINJA</span>
+          <span class="device-led" aria-hidden="true"></span>
+        </div>
+
+        <div class="device-screen-surround">
+          <div id="canvas-frame" class="device-screen-bezel">
             <canvas id="game-canvas" aria-label="Bag Ninja gameplay area"></canvas>
+            <div class="screen-scanlines" aria-hidden="true"></div>
           </div>
-          <div class="touch-controls" aria-label="Touch controls">
-            <div class="touch-cluster touch-cluster-left">
-              <div
-                id="joystick"
-                class="joystick"
-                aria-label="Movement joystick"
-                role="application"
-              >
-                <span class="joystick-arrow joystick-arrow-up" aria-hidden="true"></span>
-                <span class="joystick-arrow joystick-arrow-right" aria-hidden="true"></span>
-                <span class="joystick-arrow joystick-arrow-down" aria-hidden="true"></span>
-                <span class="joystick-arrow joystick-arrow-left" aria-hidden="true"></span>
-                <span id="joystick-knob" class="joystick-knob" aria-hidden="true"></span>
-              </div>
-            </div>
-            <div class="touch-cluster touch-cluster-right">
-              <button id="action-button" class="action-button" type="button" aria-label="Action"></button>
-            </div>
-          </div>
-        </section>
+        </div>
 
-        <section id="game-over-overlay" class="game-over-overlay" aria-hidden="true">
-          <div class="game-over-card">
-            <h2>Game Over</h2>
-            <p>Police caught Bag Ninja in the act.</p>
-            <p class="game-over-scene">[ Policeman handcuffing Bag Ninja ]</p>
+        <div class="device-controls">
+
+          <div class="controls-left">
+            <div
+              id="joystick"
+              class="dpad"
+              aria-label="Movement"
+              role="application"
+            >
+              <span class="dpad-arm dpad-arm-h" aria-hidden="true"></span>
+              <span class="dpad-arm dpad-arm-v" aria-hidden="true"></span>
+              <span class="dpad-arrow dpad-up"    aria-hidden="true"></span>
+              <span class="dpad-arrow dpad-right" aria-hidden="true"></span>
+              <span class="dpad-arrow dpad-down"  aria-hidden="true"></span>
+              <span class="dpad-arrow dpad-left"  aria-hidden="true"></span>
+              <span id="joystick-knob" class="joystick-knob-hidden" aria-hidden="true"></span>
+            </div>
           </div>
-        </section>
-      </section>
+
+          <div class="controls-center" aria-hidden="true"></div>
+
+          <div class="controls-right">
+            <div class="button-cluster">
+              <button id="pause-button"  class="device-btn btn-pause"  type="button" aria-label="Pause / Menu"></button>
+              <button id="action-button" class="device-btn btn-action" type="button" aria-label="Action"></button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="device-footer" aria-hidden="true">
+          <div class="device-speaker">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- JS-referenced elements not part of device UI -->
+      <div class="utility-hidden" aria-hidden="true">
+        <span id="player-state"></span>
+        <span id="mowed-count"></span>
+        <span id="curtis-state"></span>
+        <span id="mower-fill-stat" hidden>
+          <span id="mower-fill-text"></span>
+        </span>
+        <div id="mower-fill-meter" hidden><div id="mower-fill-bar"></div></div>
+        <p id="load-status"></p>
+        <button id="load-default"   type="button">Load Level</button>
+        <button id="restart-level"  type="button">Restart</button>
+        <label><input id="level-file-input" type="file" accept=".json,application/json"></label>
+      </div>
+
     </main>
 
-    <script src="./game-core.js?v=20260616-2"></script>
-    <script src="./game.js?v=20260616-2"></script>
+    <script src="./game-core.js?v=20260617-1"></script>
+    <script src="./game.js?v=20260617-1"></script>
   </body>
 </html>

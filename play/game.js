@@ -2,6 +2,8 @@
   const DEFAULT_LEVEL_URL = "./levels/level-01.json";
   const TILE_SIZE = 16;
   const DISPLAY_SCALE = 2;
+  const VIEWPORT_W = 16;
+  const VIEWPORT_H = 16;
   const SIMULATION_TICK_MS = 400;
   const MOVE_ANIMATION_MS = 220;
   const ASSET_PATHS = {
@@ -39,10 +41,15 @@
     levelSource: null,
     game: null,
     presentation: {
-      gameOverPhase: "none",
-      gameOverTimerId: null,
+      phase: "title",       // "title" | "playing" | "winning" | "losing" | "gameover"
+      startTimeMs: 0,
+      greyscaleTimerId: null,
+      playAgainTimerId: null,
+      playAgainReady: false,
       playerWalkUntil: 0,
-      curtisWalkUntil: 0
+      curtisWalkUntil: 0,
+      camX: 0,
+      camY: 0
     },
     simulationTimerId: null
   };
@@ -59,14 +66,22 @@
   const mowerFillTextEl = document.getElementById("mower-fill-text");
   const mowerFillBarEl = document.getElementById("mower-fill-bar");
   const loadStatusEl = document.getElementById("load-status");
-  const defaultFileInputEl = document.getElementById("default-file-input");
   const levelFileInputEl = document.getElementById("level-file-input");
   const loadDefaultButtonEl = document.getElementById("load-default");
   const restartLevelButtonEl = document.getElementById("restart-level");
   const joystickEl = document.getElementById("joystick");
   const joystickKnobEl = document.getElementById("joystick-knob");
   const actionButtonEl = document.getElementById("action-button");
-  const gameOverOverlayEl = document.getElementById("game-over-overlay");
+  const titleScreenEl = document.getElementById("title-screen");
+  const winScreenEl = document.getElementById("win-screen");
+  const winTimeEl = document.getElementById("win-time");
+  const winAlertTimeEl = document.getElementById("win-alert-time");
+  const gameOverScreenEl = document.getElementById("game-over-screen");
+  const gameoverMowedEl = document.getElementById("gameover-mowed");
+  const winPlayAgainEl = document.getElementById("win-play-again");
+  const gameoverPlayAgainEl = document.getElementById("gameover-play-again");
+  const titlePromptEl = document.getElementById("title-prompt");
+
   const heldMoveState = {
     source: null,
     direction: null,
@@ -77,6 +92,68 @@
     pointerId: null,
     direction: null
   };
+
+  // ── Helpers ────────────────────────────────────────────────
+
+  function formatTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+
+  const CAM_MARGIN = 4;
+
+  function initCamera() {
+    if (!state.game || !state.game.player) {
+      return;
+    }
+    const { player, level } = state.game;
+    if (level.width >= VIEWPORT_W) {
+      state.presentation.camX = Math.max(0, Math.min(player.x - Math.floor(VIEWPORT_W / 2), level.width - VIEWPORT_W));
+    } else {
+      state.presentation.camX = -Math.floor((VIEWPORT_W - level.width) / 2);
+    }
+    if (level.height >= VIEWPORT_H) {
+      state.presentation.camY = Math.max(0, Math.min(player.y - Math.floor(VIEWPORT_H / 2), level.height - VIEWPORT_H));
+    } else {
+      state.presentation.camY = -Math.floor((VIEWPORT_H - level.height) / 2);
+    }
+  }
+
+  function updateCamera() {
+    if (!state.game || !state.game.player) {
+      return;
+    }
+    const { player, level } = state.game;
+    const relX = player.x - state.presentation.camX;
+    const relY = player.y - state.presentation.camY;
+
+    if (relX < CAM_MARGIN) {
+      state.presentation.camX = Math.max(0, player.x - CAM_MARGIN);
+    } else if (relX > VIEWPORT_W - CAM_MARGIN - 1) {
+      state.presentation.camX = Math.min(level.width - VIEWPORT_W, player.x - (VIEWPORT_W - CAM_MARGIN - 1));
+    }
+
+    if (relY < CAM_MARGIN) {
+      state.presentation.camY = Math.max(0, player.y - CAM_MARGIN);
+    } else if (relY > VIEWPORT_H - CAM_MARGIN - 1) {
+      state.presentation.camY = Math.min(level.height - VIEWPORT_H, player.y - (VIEWPORT_H - CAM_MARGIN - 1));
+    }
+  }
+
+  function toPixelX(tileX) {
+    return (tileX - state.presentation.camX) * TILE_SIZE;
+  }
+
+  function toPixelY(tileY) {
+    return (tileY - state.presentation.camY) * TILE_SIZE;
+  }
+
+  function isInView(tileX, tileY) {
+    return tileX >= state.presentation.camX && tileX < state.presentation.camX + VIEWPORT_W &&
+           tileY >= state.presentation.camY && tileY < state.presentation.camY + VIEWPORT_H;
+  }
 
   function setLoadStatus(message, tone) {
     loadStatusEl.textContent = message;
@@ -132,11 +209,155 @@
     return getTwoFramePaths(prefix)[frameIndex];
   }
 
+  // ── Screen flow ────────────────────────────────────────────
+
+  function showTitleScreen() {
+    titleScreenEl.classList.remove("is-dismissing");
+    titleScreenEl.style.display = "";
+    titleScreenEl.setAttribute("aria-hidden", "false");
+    titlePromptEl.hidden = true;
+    state.presentation.playAgainReady = false;
+    if (state.presentation.playAgainTimerId) {
+      window.clearTimeout(state.presentation.playAgainTimerId);
+    }
+    state.presentation.playAgainTimerId = window.setTimeout(() => {
+      state.presentation.playAgainReady = true;
+      titlePromptEl.hidden = false;
+    }, 5000);
+  }
+
+  function dismissTitle() {
+    if (state.presentation.phase !== "title" || !state.presentation.playAgainReady) {
+      return;
+    }
+    state.presentation.phase = "playing";
+    state.presentation.startTimeMs = Date.now();
+    titleScreenEl.classList.add("is-dismissing");
+    window.setTimeout(() => {
+      titleScreenEl.style.display = "none";
+      titleScreenEl.setAttribute("aria-hidden", "true");
+    }, 520);
+    startSimulationLoop();
+  }
+
+  function showWinScreen() {
+    if (state.presentation.phase !== "playing") {
+      return;
+    }
+    state.presentation.phase = "winning";
+    const elapsed = Date.now() - state.presentation.startTimeMs;
+    const alertMs = state.game ? (state.game.curtisAlertMs || 0) : 0;
+    winTimeEl.textContent = formatTime(elapsed);
+    winAlertTimeEl.textContent = formatTime(alertMs);
+    winScreenEl.setAttribute("aria-hidden", "false");
+    winScreenEl.classList.add("is-active");
+    state.presentation.playAgainTimerId = window.setTimeout(() => {
+      state.presentation.playAgainReady = true;
+      winPlayAgainEl.hidden = false;
+    }, 5000);
+  }
+
+  function setCanvasGreyscale(step) {
+    canvasEl.classList.remove("greyscale-1", "greyscale-2", "greyscale-3", "greyscale-4");
+    if (step > 0) {
+      canvasEl.classList.add(`greyscale-${step}`);
+    }
+  }
+
+  function showGameOver() {
+    if (state.game) {
+      state.game.loseState = "game_over";
+      const remaining = core.countRemainingTallGrass(state.game.level);
+      const mowed = state.game.totalMowable - remaining;
+      gameoverMowedEl.textContent = `${mowed} / ${state.game.totalMowable}`;
+    }
+    state.presentation.phase = "gameover";
+    gameOverScreenEl.setAttribute("aria-hidden", "false");
+    gameOverScreenEl.classList.add("is-visible");
+    state.presentation.playAgainTimerId = window.setTimeout(() => {
+      state.presentation.playAgainReady = true;
+      gameoverPlayAgainEl.hidden = false;
+    }, 5000);
+  }
+
+  function beginLoseSequence() {
+    function nextStep(n) {
+      setCanvasGreyscale(n);
+      if (n < 4) {
+        state.presentation.greyscaleTimerId = window.setTimeout(() => nextStep(n + 1), 500);
+      } else {
+        state.presentation.greyscaleTimerId = window.setTimeout(showGameOver, 600);
+      }
+    }
+    state.presentation.greyscaleTimerId = window.setTimeout(() => nextStep(1), 500);
+  }
+
+  function triggerPlayAgain() {
+    // Block any further input immediately
+    if (state.presentation.playAgainTimerId) {
+      window.clearTimeout(state.presentation.playAgainTimerId);
+      state.presentation.playAgainTimerId = null;
+    }
+    state.presentation.playAgainReady = false;
+    const screenEl = state.presentation.phase === "winning" ? winScreenEl : gameOverScreenEl;
+    screenEl.classList.add("is-hiding");
+    // Restart the level after the fade completes; restartLevel → loadLevelFromObject
+    // → resetPresentation cleans up all the screen classes and game state properly
+    window.setTimeout(restartLevel, 650);
+  }
+
+  function checkForScreenTransitions() {
+    if (!state.game) {
+      return;
+    }
+    if (state.game.hasWon && state.presentation.phase === "playing") {
+      showWinScreen();
+    }
+    if (state.game.loseState === "captured" && state.presentation.phase === "playing") {
+      state.presentation.phase = "losing";
+      beginLoseSequence();
+    }
+  }
+
+  function resetPresentation() {
+    if (state.presentation.greyscaleTimerId) {
+      window.clearTimeout(state.presentation.greyscaleTimerId);
+      state.presentation.greyscaleTimerId = null;
+    }
+    // Preserve the title delay timer when the level loads under the title screen
+    if (state.presentation.phase !== "title") {
+      if (state.presentation.playAgainTimerId) {
+        window.clearTimeout(state.presentation.playAgainTimerId);
+        state.presentation.playAgainTimerId = null;
+      }
+      state.presentation.playAgainReady = false;
+    }
+    state.presentation.playerWalkUntil = 0;
+    state.presentation.curtisWalkUntil = 0;
+    state.presentation.camX = 0;
+    state.presentation.camY = 0;
+    setCanvasGreyscale(0);
+
+    winScreenEl.classList.remove("is-active", "is-hiding");
+    winScreenEl.setAttribute("aria-hidden", "true");
+    winPlayAgainEl.hidden = true;
+    gameOverScreenEl.classList.remove("is-visible", "is-hiding");
+    gameOverScreenEl.setAttribute("aria-hidden", "true");
+    gameoverPlayAgainEl.hidden = true;
+
+    if (state.presentation.phase !== "title") {
+      state.presentation.phase = "playing";
+      state.presentation.startTimeMs = Date.now();
+    }
+  }
+
+  // ── Level loading ──────────────────────────────────────────
+
   function loadLevelFromObject(levelData, sourceLabel) {
     resetPresentation();
     state.levelSource = sourceLabel;
     state.game = core.createGameState(levelData);
-    setCanvasSize(state.game.level.width, state.game.level.height);
+    initCamera();
     setLoadStatus(`Loaded level from ${sourceLabel}.`, "ok");
     render();
   }
@@ -144,9 +365,6 @@
   function setCanvasSize(width, height) {
     canvasEl.width = width * TILE_SIZE;
     canvasEl.height = height * TILE_SIZE;
-    canvasEl.style.width = `${canvasEl.width * DISPLAY_SCALE}px`;
-    canvasEl.style.height = "auto";
-    canvasFrameEl.style.maxWidth = `${(canvasEl.width * DISPLAY_SCALE) + 32}px`;
   }
 
   async function readLevelFile(file, label) {
@@ -154,15 +372,7 @@
     loadLevelFromObject(parsed, label || file.name);
   }
 
-  async function loadDefaultLevel(showFilePicker) {
-    if (window.location.protocol === "file:") {
-      setLoadStatus("Direct file mode cannot auto-load the default level. Choose play/levels/level-01.json from the file picker.", "error");
-      if (showFilePicker) {
-        defaultFileInputEl.click();
-      }
-      return;
-    }
-
+  async function loadDefaultLevel() {
     try {
       const response = await fetch(DEFAULT_LEVEL_URL, { cache: "no-store" });
       if (!response.ok) {
@@ -172,9 +382,6 @@
       loadLevelFromObject(parsed, DEFAULT_LEVEL_URL);
     } catch (error) {
       setLoadStatus(`Unable to load default level: ${error.message}`, "error");
-      if (showFilePicker) {
-        window.alert(`Unable to load default level from ${DEFAULT_LEVEL_URL}: ${error.message}`);
-      }
     }
   }
 
@@ -185,18 +392,7 @@
     loadLevelFromObject(JSON.parse(JSON.stringify(state.game.levelTemplate)), state.levelSource || "current level");
   }
 
-  function resetPresentation() {
-    if (state.presentation.gameOverTimerId) {
-      window.clearTimeout(state.presentation.gameOverTimerId);
-    }
-    state.presentation.gameOverTimerId = null;
-    state.presentation.gameOverPhase = "none";
-    state.presentation.playerWalkUntil = 0;
-    state.presentation.curtisWalkUntil = 0;
-    gameOverOverlayEl.classList.remove("is-fading");
-    gameOverOverlayEl.classList.remove("is-visible");
-    gameOverOverlayEl.setAttribute("aria-hidden", "true");
-  }
+  // ── Simulation loop ────────────────────────────────────────
 
   function startSimulationLoop() {
     stopSimulationLoop();
@@ -213,6 +409,7 @@
         flushGameStatus();
         render();
       }
+      checkForScreenTransitions();
     }, SIMULATION_TICK_MS);
   }
 
@@ -223,14 +420,18 @@
     state.simulationTimerId = null;
   }
 
+  // ── Player input ───────────────────────────────────────────
+
   function movePlayer(direction) {
     if (!state.game) {
       return;
     }
     if (core.movePlayer(state.game, direction)) {
       state.presentation.playerWalkUntil = Date.now() + MOVE_ANIMATION_MS;
+      updateCamera();
       flushGameStatus();
       render();
+      checkForScreenTransitions();
     }
   }
 
@@ -241,11 +442,14 @@
     if (core.handleAction(state.game)) {
       flushGameStatus();
       render();
+      checkForScreenTransitions();
       return;
     }
     flushGameStatus();
     updateHud();
   }
+
+  // ── Drawing ────────────────────────────────────────────────
 
   function drawBaseTileFallback(symbol, pixelX, pixelY) {
     switch (symbol) {
@@ -344,8 +548,8 @@
   }
 
   function drawBagFallback(bag) {
-    const pixelX = bag.x * TILE_SIZE;
-    const pixelY = bag.y * TILE_SIZE;
+    const pixelX = toPixelX(bag.x);
+    const pixelY = toPixelY(bag.y);
 
     context.fillStyle = "#ab8d63";
     context.fillRect(pixelX + 4, pixelY + 5, 8, 8);
@@ -354,7 +558,7 @@
   }
 
   function drawBag(bag) {
-    drawImageOrFallback(ASSET_PATHS.moveable.bag, bag.x * TILE_SIZE, bag.y * TILE_SIZE, () => {
+    drawImageOrFallback(ASSET_PATHS.moveable.bag, toPixelX(bag.x), toPixelY(bag.y), () => {
       drawBagFallback(bag);
     });
   }
@@ -371,8 +575,8 @@
 
     const freeBag = core.getFreeBagAt(state.game, player.x, player.y);
     if (freeBag) {
-      const pixelX = player.x * TILE_SIZE;
-      const pixelY = player.y * TILE_SIZE;
+      const pixelX = toPixelX(player.x);
+      const pixelY = toPixelY(player.y);
       context.fillStyle = "rgba(248, 244, 234, 0.92)";
       context.fillRect(pixelX + 9, pixelY + 9, 6, 6);
       context.fillStyle = "#ab8d63";
@@ -388,8 +592,8 @@
       return;
     }
 
-    const pixelX = mower.x * TILE_SIZE;
-    const pixelY = mower.y * TILE_SIZE;
+    const pixelX = toPixelX(mower.x);
+    const pixelY = toPixelY(mower.y);
 
     context.fillStyle = "#c64435";
     context.fillRect(pixelX + 2, pixelY + 4, 12, 8);
@@ -402,10 +606,10 @@
 
   function drawMower() {
     const mower = core.getMower(state.game);
-    if (!mower || mower.attachedTo) {
+    if (!mower || mower.attachedTo || !isInView(mower.x, mower.y)) {
       return;
     }
-    drawImageOrFallback(ASSET_PATHS.moveable.mower, mower.x * TILE_SIZE, mower.y * TILE_SIZE, () => {
+    drawImageOrFallback(ASSET_PATHS.moveable.mower, toPixelX(mower.x), toPixelY(mower.y), () => {
       drawMowerFallback();
     });
   }
@@ -420,8 +624,8 @@
       return;
     }
 
-    const pixelX = police.x * TILE_SIZE;
-    const pixelY = police.y * TILE_SIZE;
+    const pixelX = toPixelX(police.x);
+    const pixelY = toPixelY(police.y);
 
     context.fillStyle = "#2e5fb8";
     context.fillRect(pixelX + 4, pixelY + 3, 8, 10);
@@ -443,8 +647,11 @@
       return;
     }
 
+    if (!isInView(police.x, police.y)) {
+      return;
+    }
     const framePath = getCurrentTwoFrame(`../assets/entities/police-walk-${police.facing}`);
-    drawImageOrFallback(framePath, police.x * TILE_SIZE, police.y * TILE_SIZE, () => {
+    drawImageOrFallback(framePath, toPixelX(police.x), toPixelY(police.y), () => {
       drawPoliceFallback();
     });
   }
@@ -472,11 +679,11 @@
       return;
     }
 
-    const anchorX = mower.attachedTo === "player" ? state.game.player.x : mower.x;
-    const anchorY = mower.attachedTo === "player" ? state.game.player.y : mower.y;
+    const anchorX = state.game.player.x;
+    const anchorY = state.game.player.y;
     const ratio = getMowerFillRatio();
-    const pixelX = (anchorX * TILE_SIZE) + 1;
-    const pixelY = (anchorY * TILE_SIZE) - 6;
+    const pixelX = toPixelX(anchorX) + 1;
+    const pixelY = toPixelY(anchorY) - 6;
 
     context.fillStyle = "rgba(28, 22, 18, 0.8)";
     context.fillRect(pixelX, pixelY, 14, 4);
@@ -495,8 +702,8 @@
     }
 
     const player = state.game.player;
-    const pixelX = player.x * TILE_SIZE;
-    const pixelY = player.y * TILE_SIZE;
+    const pixelX = toPixelX(player.x);
+    const pixelY = toPixelY(player.y);
 
     if (player.attachedItemType === "mower") {
       context.fillStyle = "#f1a65d";
@@ -525,8 +732,6 @@
     }
 
     const player = state.game.player;
-    const pixelX = player.x * TILE_SIZE;
-    const pixelY = player.y * TILE_SIZE;
     const facing = player.facing || "down";
     const isWalking = Date.now() < state.presentation.playerWalkUntil;
 
@@ -541,7 +746,7 @@
         : `../assets/entities/player-idle-${facing}-01.png`;
     }
 
-    drawImageOrFallback(path, pixelX, pixelY, () => {
+    drawImageOrFallback(path, toPixelX(player.x), toPixelY(player.y), () => {
       drawPlayerFallback();
     });
   }
@@ -552,8 +757,8 @@
     }
 
     const curtis = state.game.curtis;
-    const pixelX = curtis.x * TILE_SIZE;
-    const pixelY = curtis.y * TILE_SIZE;
+    const pixelX = toPixelX(curtis.x);
+    const pixelY = toPixelY(curtis.y);
 
     context.fillStyle = curtis.detectionStage === "police"
       ? "#a63b30"
@@ -587,13 +792,13 @@
   }
 
   function drawCurtis() {
-    if (!state.game || !state.game.curtis || !state.game.curtis.outdoors) {
+    if (!state.game || !state.game.curtis || !state.game.curtis.outdoors || !isInView(state.game.curtis.x, state.game.curtis.y)) {
       return;
     }
 
     const curtis = state.game.curtis;
-    const pixelX = curtis.x * TILE_SIZE;
-    const pixelY = curtis.y * TILE_SIZE;
+    const pixelX = toPixelX(curtis.x);
+    const pixelY = toPixelY(curtis.y);
     const isWalking = Date.now() < state.presentation.curtisWalkUntil;
     const stateName = curtis.detectionStage === "police"
       ? "angry"
@@ -618,6 +823,8 @@
       context.fillText("POLICE!", pixelX - 1, pixelY - 4);
     }
   }
+
+  // ── HUD ────────────────────────────────────────────────────
 
   function updateHud() {
     if (!state.game) {
@@ -648,32 +855,9 @@
     mowerFillMeterEl.hidden = !isOperatingMower;
     actionButtonEl.textContent = core.getActionLabel(state.game);
     actionButtonEl.disabled = !core.hasAvailableAction(state.game);
-    updateGameOverPresentation();
   }
 
-  function updateGameOverPresentation() {
-    if (!state.game) {
-      return;
-    }
-
-    if (state.game.loseState === "captured" && state.presentation.gameOverPhase === "none") {
-      state.presentation.gameOverPhase = "fading";
-      gameOverOverlayEl.classList.add("is-fading");
-      gameOverOverlayEl.setAttribute("aria-hidden", "false");
-      state.presentation.gameOverTimerId = window.setTimeout(() => {
-        state.presentation.gameOverPhase = "splash";
-        state.game.loseState = "game_over";
-        gameOverOverlayEl.classList.add("is-visible");
-      }, 800);
-      return;
-    }
-
-    if (state.game.loseState === "game_over" || state.presentation.gameOverPhase === "splash") {
-      gameOverOverlayEl.classList.add("is-fading");
-      gameOverOverlayEl.classList.add("is-visible");
-      gameOverOverlayEl.setAttribute("aria-hidden", "false");
-    }
-  }
+  // ── Render ─────────────────────────────────────────────────
 
   function render() {
     if (!state.game || !state.game.level) {
@@ -683,27 +867,39 @@
     }
 
     const level = state.game.level;
+    const camX = state.presentation.camX;
+    const camY = state.presentation.camY;
 
-    context.clearRect(0, 0, canvasEl.width, canvasEl.height);
+    // Void background for areas outside level bounds
+    context.fillStyle = "#141008";
+    context.fillRect(0, 0, canvasEl.width, canvasEl.height);
 
-    for (let y = 0; y < level.height; y += 1) {
-      for (let x = 0; x < level.width; x += 1) {
-        drawBaseTile(level.base[y][x], x * TILE_SIZE, y * TILE_SIZE);
-        drawZoneOverlay(level, x, y);
+    for (let vy = 0; vy < VIEWPORT_H; vy += 1) {
+      for (let vx = 0; vx < VIEWPORT_W; vx += 1) {
+        const x = vx + camX;
+        const y = vy + camY;
+        if (x >= 0 && x < level.width && y >= 0 && y < level.height) {
+          const px = vx * TILE_SIZE;
+          const py = vy * TILE_SIZE;
+          drawBaseTile(level.base[y][x], px, py);
+          drawZoneOverlay(level, x, y);
+        }
       }
     }
 
-    for (let y = 0; y < level.height; y += 1) {
-      for (let x = 0; x < level.width; x += 1) {
-        drawItem(level.items[y][x], x * TILE_SIZE, y * TILE_SIZE);
+    for (let vy = 0; vy < VIEWPORT_H; vy += 1) {
+      for (let vx = 0; vx < VIEWPORT_W; vx += 1) {
+        const x = vx + camX;
+        const y = vy + camY;
+        if (x >= 0 && x < level.width && y >= 0 && y < level.height) {
+          drawItem(level.items[y][x], vx * TILE_SIZE, vy * TILE_SIZE);
+        }
       }
     }
 
     state.game.moveableItems.bags
-      .filter((bag) => !bag.attachedTo)
-      .forEach((bag) => {
-        drawBag(bag);
-      });
+      .filter((bag) => !bag.attachedTo && isInView(bag.x, bag.y))
+      .forEach((bag) => drawBag(bag));
 
     drawMower();
     drawCurtis();
@@ -714,7 +910,24 @@
     updateHud();
   }
 
+  // ── Keyboard input ─────────────────────────────────────────
+
   function handleKeyDown(event) {
+    if (state.presentation.phase === "title") {
+      event.preventDefault();
+      if (!event.repeat) {
+        dismissTitle();
+      }
+      return;
+    }
+
+    if (state.presentation.phase === "winning" || state.presentation.phase === "gameover") {
+      if (!event.repeat && state.presentation.playAgainReady) {
+        triggerPlayAgain();
+      }
+      return;
+    }
+
     const direction = getDirectionFromKey(event.key);
 
     if (direction) {
@@ -793,6 +1006,8 @@
     }, SIMULATION_TICK_MS);
   }
 
+  // ── Touch / joystick input ─────────────────────────────────
+
   function setJoystickVisual(dx, dy, isActive) {
     joystickEl.classList.toggle("is-active", Boolean(isActive));
     joystickKnobEl.style.transform = `translate(${dx}px, ${dy}px)`;
@@ -857,8 +1072,28 @@
     }
   }
 
+  // ── Event listeners ────────────────────────────────────────
+
+  titleScreenEl.addEventListener("pointerdown", () => {
+    if (state.presentation.playAgainReady) {
+      dismissTitle();
+    }
+  });
+
+  winScreenEl.addEventListener("pointerdown", () => {
+    if (state.presentation.phase === "winning" && state.presentation.playAgainReady) {
+      triggerPlayAgain();
+    }
+  });
+
+  gameOverScreenEl.addEventListener("pointerdown", () => {
+    if (state.presentation.phase === "gameover" && state.presentation.playAgainReady) {
+      triggerPlayAgain();
+    }
+  });
+
   loadDefaultButtonEl.addEventListener("click", () => {
-    loadDefaultLevel(true);
+    loadDefaultLevel();
   });
 
   restartLevelButtonEl.addEventListener("click", () => {
@@ -867,19 +1102,6 @@
 
   actionButtonEl.addEventListener("click", () => {
     handleAction();
-  });
-
-  defaultFileInputEl.addEventListener("change", async (event) => {
-    const file = event.target.files[0];
-    if (!file) {
-      return;
-    }
-    try {
-      await readLevelFile(file, file.name);
-    } catch (error) {
-      setLoadStatus(`Unable to load selected default level: ${error.message}`, "error");
-    }
-    event.target.value = "";
   });
 
   levelFileInputEl.addEventListener("change", async (event) => {
@@ -940,13 +1162,10 @@
   });
   window.addEventListener("beforeunload", stopSimulationLoop);
 
-  setCanvasSize(13, 24);
-  render();
-  startSimulationLoop();
+  // ── Startup ────────────────────────────────────────────────
 
-  if (window.location.protocol === "file:") {
-    setLoadStatus("Open over http(s) for automatic default loading, or click Load Default Level and choose play/levels/level-01.json.", "error");
-  } else {
-    loadDefaultLevel(false);
-  }
+  setCanvasSize(VIEWPORT_W, VIEWPORT_H);
+  render();
+  showTitleScreen();
+  loadDefaultLevel();
 }());

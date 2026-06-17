@@ -12,8 +12,8 @@
     simulationTickMs: 400,
     curtisOutsideDurationMinMs: 8000,
     curtisOutsideDurationMaxMs: 14000,
-    curtisInsideDurationMinMs: 5000,
-    curtisInsideDurationMaxMs: 9000,
+    curtisInsideDurationMinMs: 2500,
+    curtisInsideDurationMaxMs: 4500,
     curtisPauseAtPointMinMs: 1600,
     curtisPauseAtPointMaxMs: 2800,
     curtisNoticeDurationMs: 800,
@@ -48,7 +48,8 @@
       totalMowable: runtime.totalMowable,
       hasWon: false,
       loseState: "none",
-      lastStatus: null
+      lastStatus: null,
+      curtisAlertMs: 0
     };
   }
 
@@ -296,6 +297,12 @@
     const curtisJustChanged = curtisPresenceChanged === "indoors" || curtisPresenceChanged === "outdoors";
     const curtisStage = curtisJustChanged ? state.curtis.detectionStage : evaluateCurtisDetection(state);
     const curtisMoved = curtisJustChanged ? false : stepCurtis(state);
+
+    if (state.curtis && state.curtis.outdoors &&
+        (state.curtis.detectionStage === "spot" || state.curtis.detectionStage === "alert")) {
+      state.curtisAlertMs += state.config.simulationTickMs;
+    }
+
     const policeMoved = stepPolice(state);
     checkWinCondition(state);
 
