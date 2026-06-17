@@ -5,6 +5,7 @@
   const VIEWPORT_W = 16;
   const VIEWPORT_H = 16;
   const SIMULATION_TICK_MS = 400;
+  const HELD_MOVE_INTERVAL_MS = Math.round(SIMULATION_TICK_MS / 1.5); // ~267ms
   const MOVE_ANIMATION_MS = 220;
   const ASSET_PATHS = {
     base: {
@@ -62,6 +63,7 @@
       greyscaleTimerId: null,
       playAgainTimerId: null,
       playAgainReady: false,
+      celebrationRafId: null,
       playerWalkUntil: 0,
       curtisWalkUntil: 0,
       camX: 0,
@@ -198,6 +200,7 @@
     if (state.presentation.playAgainTimerId) {
       window.clearTimeout(state.presentation.playAgainTimerId);
     }
+    emit("fade-from-black");
     emit("phase", { phase: "title" });
     emit("prompt", { visible: false });
     emit("action-state", { enabled: false });
@@ -205,7 +208,7 @@
       state.presentation.playAgainReady = true;
       emit("prompt", { visible: true });
       emit("action-state", { enabled: true });
-    }, 3000);
+    }, 1000);
   }
 
   function dismissTitle() {
@@ -217,6 +220,7 @@
     state.presentation.startTimeMs = Date.now();
     emit("phase", { phase: "playing" });
     startSimulationLoop();
+    render();
   }
 
   function showWinScreen() {
@@ -235,6 +239,7 @@
       emit("prompt", { visible: true });
       emit("action-state", { enabled: true });
     }, 5000);
+    render();
   }
 
   function setCanvasGreyscale(step) {
@@ -261,18 +266,42 @@
       emit("prompt", { visible: true });
       emit("action-state", { enabled: true });
     }, 5000);
+    render();
   }
 
   function beginLoseSequence() {
-    function nextStep(n) {
-      setCanvasGreyscale(n);
-      if (n < 4) {
-        state.presentation.greyscaleTimerId = window.setTimeout(() => nextStep(n + 1), 500);
-      } else {
-        state.presentation.greyscaleTimerId = window.setTimeout(showGameOver, 600);
-      }
+    stopSimulationLoop();
+    clearHeldMovement();
+    emit("impact");
+    if (canvasEl) canvasEl.classList.add("greyscale-smooth");
+    setCanvasGreyscale(4);
+    state.presentation.greyscaleTimerId = window.setTimeout(() => {
+      if (canvasEl) canvasEl.classList.remove("greyscale-smooth");
+      showGameOver();
+    }, 1300);
+  }
+
+  function showCelebration() {
+    if (state.presentation.phase !== "playing") return;
+    stopSimulationLoop();
+    clearHeldMovement();
+    state.presentation.phase = "celebrating";
+    emit("phase", { phase: "celebrating" });
+    emit("action-state", { enabled: false });
+
+    function animateCelebration() {
+      render();
+      state.presentation.celebrationRafId = window.requestAnimationFrame(animateCelebration);
     }
-    state.presentation.greyscaleTimerId = window.setTimeout(() => nextStep(1), 500);
+    state.presentation.celebrationRafId = window.requestAnimationFrame(animateCelebration);
+
+    state.presentation.greyscaleTimerId = window.setTimeout(() => {
+      if (state.presentation.celebrationRafId) {
+        window.cancelAnimationFrame(state.presentation.celebrationRafId);
+        state.presentation.celebrationRafId = null;
+      }
+      showWinScreen();
+    }, 2500);
   }
 
   function triggerPlayAgain() {
@@ -281,8 +310,8 @@
       state.presentation.playAgainTimerId = null;
     }
     state.presentation.playAgainReady = false;
-    emit("play-again", { fromPhase: state.presentation.phase });
-    window.setTimeout(restartLevel, 650);
+    emit("fade-to-black");
+    window.setTimeout(handleResetToTitle, 420);
   }
 
   function handleConfirm() {
@@ -315,6 +344,10 @@
 
   function handleResetToTitle() {
     stopSimulationLoop();
+    if (state.presentation.celebrationRafId) {
+      window.cancelAnimationFrame(state.presentation.celebrationRafId);
+      state.presentation.celebrationRafId = null;
+    }
     clearHeldMovement();
     setCanvasGreyscale(0);
     if (state.presentation.greyscaleTimerId) {
@@ -332,7 +365,7 @@
       return;
     }
     if (state.game.hasWon && state.presentation.phase === "playing") {
-      showWinScreen();
+      showCelebration();
     }
     if (state.game.loseState === "captured" && state.presentation.phase === "playing") {
       state.presentation.phase = "losing";
@@ -772,6 +805,17 @@
     });
   }
 
+  function drawCelebrationSprite() {
+    if (!state.game || !state.game.player) return;
+    const { player } = state.game;
+    const frameIdx = Math.floor(Date.now() / 140) % 4;
+    const path = `../assets/entities/player-celebrate-0${frameIdx + 1}.png`;
+    const img = getImage(path);
+    if (img && img.complete && img.naturalWidth > 0) {
+      context.drawImage(img, toPixelX(player.x), toPixelY(player.y), TILE_SIZE, TILE_SIZE);
+    }
+  }
+
   function drawCurtisFallback() {
     if (!state.game || !state.game.curtis || !state.game.curtis.outdoors) {
       return;
@@ -931,7 +975,17 @@
     if (!context) return;
 
     if (state.presentation.phase === "title") {
-      const img = getImage("../assets/cutscenes/cutscene-start.png");
+      context.fillStyle = "#080808";
+      context.fillRect(0, 0, canvasEl.width, canvasEl.height);
+      return;
+    }
+
+    const CUTSCENE = {
+      winning:  "../assets/cutscenes/cutscene-win.png",
+      gameover: "../assets/cutscenes/cutscene-lose.png",
+    };
+    if (CUTSCENE[state.presentation.phase]) {
+      const img = getImage(CUTSCENE[state.presentation.phase]);
       if (img && img.complete && img.naturalWidth > 0) {
         context.drawImage(img, 0, 0, canvasEl.width, canvasEl.height);
       } else {
@@ -986,6 +1040,7 @@
     drawCurtis();
     drawPolice();
     drawPlayer();
+    if (state.presentation.phase === "celebrating") drawCelebrationSprite();
     drawOverlappingMoveableIndicators();
     drawPoliceOffscreenIndicator();
     drawMowerFillIndicator();
@@ -1022,7 +1077,7 @@
     }
     heldMoveState.timerId = window.setInterval(() => {
       stepDirection(direction);
-    }, SIMULATION_TICK_MS);
+    }, HELD_MOVE_INTERVAL_MS);
   }
 
   // ── Public API ─────────────────────────────────────────────

@@ -469,7 +469,9 @@
   }
 
   function canPoliceOccupy(state, x, y) {
-    return isWalkableCell(state, x, y) && !getFreeBagAt(state, x, y) && !getFreeMowerAt(state, x, y);
+    const onNormal = isWalkableCell(state, x, y);
+    const onCurtisZone = Boolean(state.level) && isCurtisWalkable(state.level, x, y);
+    return (onNormal || onCurtisZone) && !getFreeBagAt(state, x, y) && !getFreeMowerAt(state, x, y);
   }
 
   function collectCurtisInterestPoints(level, homeX, homeY) {
@@ -652,6 +654,18 @@
     }
 
     if (state.curtis.detectionStage !== "idle") {
+      // Police engaged: Curtis freezes but turns to watch the player
+      if (state.police && state.police.active) {
+        const dx = state.player.x - state.curtis.x;
+        const dy = state.player.y - state.curtis.y;
+        const facing = Math.abs(dx) >= Math.abs(dy)
+          ? (dx > 0 ? "right" : "left")
+          : (dy > 0 ? "down" : "up");
+        if (facing !== state.curtis.facing) {
+          state.curtis.facing = facing;
+          return true;
+        }
+      }
       return false;
     }
 
@@ -785,28 +799,52 @@
       return null;
     }
 
-    const deltaX = state.player.x - state.police.x;
-    const deltaY = state.player.y - state.police.y;
-    const options = [];
+    const startX  = state.police.x;
+    const startY  = state.police.y;
+    const targetX = state.player.x;
+    const targetY = state.player.y;
 
-    if (deltaX !== 0) {
-      options.push(deltaX < 0 ? "left" : "right");
-    }
-    if (deltaY !== 0) {
-      options.push(deltaY < 0 ? "up" : "down");
-    }
-    for (const direction of CURTIS_DIRECTIONS) {
-      if (!options.includes(direction)) {
-        options.push(direction);
-      }
+    if (startX === targetX && startY === targetY) {
+      return null;
     }
 
-    for (const direction of options) {
-      const offset = MOVES[direction];
-      const nextX = state.police.x + offset.x;
-      const nextY = state.police.y + offset.y;
-      if ((nextX === state.player.x && nextY === state.player.y) || canPoliceOccupy(state, nextX, nextY)) {
-        return { direction, x: nextX, y: nextY };
+    const startKey    = `${startX},${startY}`;
+    const targetKey   = `${targetX},${targetY}`;
+    const queue       = [{ x: startX, y: startY }];
+    const visited     = new Set([startKey]);
+    const parentByKey = new Map();
+
+    while (queue.length > 0) {
+      const current    = queue.shift();
+      const directions = chooseCurtisPathDirections(current.x, current.y, targetX, targetY);
+
+      for (const direction of directions) {
+        const offset  = MOVES[direction];
+        const nextX   = current.x + offset.x;
+        const nextY   = current.y + offset.y;
+        const nextKey = `${nextX},${nextY}`;
+
+        if (visited.has(nextKey)) continue;
+
+        const isTarget = nextX === targetX && nextY === targetY;
+        if (!isTarget && !canPoliceOccupy(state, nextX, nextY)) continue;
+
+        visited.add(nextKey);
+        parentByKey.set(nextKey, { x: current.x, y: current.y, direction });
+
+        if (isTarget) {
+          let cursorKey = nextKey;
+          let cursor    = parentByKey.get(cursorKey);
+          while (cursor && `${cursor.x},${cursor.y}` !== startKey) {
+            cursorKey = `${cursor.x},${cursor.y}`;
+            cursor    = parentByKey.get(cursorKey);
+          }
+          const stepDirection = cursor ? cursor.direction : parentByKey.get(nextKey).direction;
+          const stepOffset    = MOVES[stepDirection];
+          return { direction: stepDirection, x: startX + stepOffset.x, y: startY + stepOffset.y };
+        }
+
+        queue.push({ x: nextX, y: nextY });
       }
     }
 
@@ -1180,6 +1218,11 @@
   function evaluateCurtisDetection(state) {
     if (!state.curtis || state.hasWon) {
       return "idle";
+    }
+
+    // Once police have been called, freeze detection — no more escalation
+    if (state.loseState !== "none") {
+      return state.curtis.detectionStage;
     }
 
     if (!canCurtisOccupy(state, state.curtis.x, state.curtis.y)) {

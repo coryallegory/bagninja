@@ -26,6 +26,8 @@
   const pauseMessageEl = document.getElementById("pause-message");
   const pauseOptEls    = [document.getElementById("pause-opt-0"), document.getElementById("pause-opt-1")];
   const pauseLblEls    = [document.getElementById("pause-lbl-0"), document.getElementById("pause-lbl-1")];
+  const impactFlashEl  = document.getElementById("impact-flash");
+  const fadeCurtainEl  = document.getElementById("fade-curtain");
 
   // ── Shell state ───────────────────────────────────────────────
 
@@ -58,9 +60,14 @@
     }
 
     if (phase === "title") {
+      titlePromptEl.hidden = true;
+      titlePromptEl.style.animation = "";
+      titleScreenEl.style.transition = "none";
       titleScreenEl.classList.remove("is-dismissing");
       titleScreenEl.style.display = "";
       titleScreenEl.setAttribute("aria-hidden", "false");
+      void titleScreenEl.offsetWidth; // flush so transition-none takes effect
+      titleScreenEl.style.transition = "";
     }
 
     if (phase === "playing" && prev === "title") {
@@ -68,7 +75,7 @@
       window.setTimeout(() => {
         titleScreenEl.style.display = "none";
         titleScreenEl.setAttribute("aria-hidden", "true");
-      }, 520);
+      }, 650);
     }
 
     if (phase === "winning") {
@@ -93,26 +100,64 @@
 
   game.on("prompt", ({ visible }) => {
     if (currentPhase === "title") {
-      titlePromptEl.hidden = !visible;
+      if (visible) {
+        titlePromptEl.style.animation = "prompt-appear 700ms ease-out forwards, prompt-pulse 1.4s ease-in-out 700ms infinite";
+        titlePromptEl.hidden = false;
+      } else {
+        titlePromptEl.hidden = true;
+        titlePromptEl.style.animation = "";
+      }
     } else if (currentPhase === "winning") {
-      winPlayAgainEl.hidden = !visible;
+      if (visible) {
+        winPlayAgainEl.style.animation = "prompt-appear 700ms ease-out forwards, prompt-pulse 1.4s ease-in-out 700ms infinite";
+        winPlayAgainEl.hidden = false;
+      } else {
+        winPlayAgainEl.hidden = true;
+        winPlayAgainEl.style.animation = "";
+      }
     } else if (currentPhase === "gameover") {
-      gameoverPlayAgainEl.hidden = !visible;
+      if (visible) {
+        gameoverPlayAgainEl.style.animation = "prompt-appear 700ms ease-out forwards, prompt-pulse 1.4s ease-in-out 700ms infinite";
+        gameoverPlayAgainEl.hidden = false;
+      } else {
+        gameoverPlayAgainEl.hidden = true;
+        gameoverPlayAgainEl.style.animation = "";
+      }
     }
   });
 
-  game.on("play-again", ({ fromPhase }) => {
-    const screenEl = fromPhase === "winning" ? winScreenEl : gameOverScreenEl;
-    screenEl.classList.add("is-hiding");
+  game.on("impact", () => {
+    impactFlashEl.classList.remove("is-active");
+    void impactFlashEl.offsetWidth; // force reflow so animation restarts
+    impactFlashEl.classList.add("is-active");
+  });
+
+  game.on("fade-to-black", () => {
+    fadeCurtainEl.classList.add("is-active");
+  });
+
+  game.on("fade-from-black", () => {
+    fadeCurtainEl.classList.remove("is-active");
   });
 
   game.on("reset", () => {
+    // Suppress transitions — curtain is opaque, so instant-hide is invisible to the user.
+    // Without this, the slide-up animation outlasts the curtain and reappears briefly.
+    [winScreenEl, gameOverScreenEl].forEach(el => { el.style.transition = "none"; });
+
     winScreenEl.classList.remove("is-active", "is-hiding");
     winScreenEl.setAttribute("aria-hidden", "true");
     winPlayAgainEl.hidden = true;
+    winPlayAgainEl.style.animation = "";
+
     gameOverScreenEl.classList.remove("is-visible", "is-hiding");
     gameOverScreenEl.setAttribute("aria-hidden", "true");
     gameoverPlayAgainEl.hidden = true;
+    gameoverPlayAgainEl.style.animation = "";
+
+    // Flush the suppressed state, then re-enable transitions for future use.
+    void winScreenEl.offsetWidth;
+    [winScreenEl, gameOverScreenEl].forEach(el => { el.style.transition = ""; });
   });
 
   game.on("action-state", ({ enabled }) => {
@@ -244,6 +289,13 @@
 
   function handleKeyDown(event) {
     if (event.repeat) return;
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      if (currentPhase === "playing") game.command("pause");
+      else if (currentPhase === "paused") game.command("resume");
+      return;
+    }
 
     if (currentPhase === "paused") {
       event.preventDefault();

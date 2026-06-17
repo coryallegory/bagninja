@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./game.css?v=20260617-9">
+    <link rel="stylesheet" href="./game.css?v=20260617-17">
   </head>
   <body>
 
@@ -26,30 +26,27 @@
           <div id="canvas-frame" class="device-screen-bezel">
             <canvas id="game-canvas" aria-label="Bag Ninja gameplay area"></canvas>
             <div class="screen-scanlines" aria-hidden="true"></div>
+            <div id="impact-flash" aria-hidden="true"></div>
+            <div id="fade-curtain" aria-hidden="true"></div>
 
             <section id="title-screen" class="title-screen" aria-label="Title screen">
+              <img src="../assets/cutscenes/cutscene-start.png" class="title-cutscene" alt="" aria-hidden="true">
               <p id="title-prompt" class="screen-prompt" hidden>START</p>
             </section>
 
-            <section id="win-screen" class="win-screen" aria-hidden="true">
-              <div class="win-card">
-                <h2>Mission<br>Complete</h2>
-                <div class="win-stats">
-                  <p>Time: <strong id="win-time">—</strong></p>
-                  <p>Alert time: <strong id="win-alert-time">—</strong></p>
-                </div>
-                <p id="win-play-again" class="play-again-prompt" hidden>Play Again</p>
+            <section id="win-screen" class="win-screen" aria-hidden="true" aria-label="Mission complete">
+              <div class="win-stats">
+                <p>TIME <strong id="win-time">—</strong></p>
+                <p>ALERT <strong id="win-alert-time">—</strong></p>
               </div>
+              <p id="win-play-again" class="play-again-prompt" hidden>PLAY AGAIN</p>
             </section>
 
-            <section id="game-over-screen" class="game-over-screen" aria-hidden="true">
-              <div class="game-over-card">
-                <h2>Game Over</h2>
-                <div class="game-over-stats">
-                  <p>Grass mowed: <strong id="gameover-mowed">—</strong></p>
-                </div>
-                <p id="gameover-play-again" class="play-again-prompt" hidden>Play Again</p>
+            <section id="game-over-screen" class="game-over-screen" aria-hidden="true" aria-label="Game over">
+              <div class="game-over-stats">
+                <p>MOWED <strong id="gameover-mowed">—</strong></p>
               </div>
+              <p id="gameover-play-again" class="play-again-prompt" hidden>PLAY AGAIN</p>
             </section>
 
             <section id="pause-screen" class="pause-screen" aria-hidden="true" aria-label="Pause menu">
@@ -127,8 +124,8 @@
 
     </main>
 
-    <script src="./game-core.js?v=20260617-9"></script>
-    <script src="./game.js?v=20260617-9"></script>
-    <script src="./shell.js?v=20260617-9"></script>
+    <script src="./game-core.js?v=20260617-15"></script>
+    <script src="./game.js?v=20260617-16"></script>
+    <script src="./shell.js?v=20260617-16"></script>
   </body>
 </html>
