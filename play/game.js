@@ -37,11 +37,27 @@
     throw new Error("BagNinjaCore is required before loading game.js.");
   }
 
+  // ── Private canvas refs (set by connect()) ──────────────────
+
+  let canvasEl = null;
+  let context  = null;
+
+  // ── Event emitter ────────────────────────────────────────────
+
+  const _handlers = {};
+
+  function emit(event, payload) {
+    const list = _handlers[event];
+    if (list) list.slice().forEach(fn => fn(payload));
+  }
+
+  // ── State ─────────────────────────────────────────────────────
+
   const state = {
     levelSource: null,
     game: null,
     presentation: {
-      phase: "title",       // "title" | "playing" | "winning" | "losing" | "gameover"
+      phase: "title",
       startTimeMs: 0,
       greyscaleTimerId: null,
       playAgainTimerId: null,
@@ -53,44 +69,12 @@
     },
     simulationTimerId: null
   };
+
   const imageCache = new Map();
 
-  const canvasEl = document.getElementById("game-canvas");
-  const canvasFrameEl = document.getElementById("canvas-frame");
-  const context = canvasEl.getContext("2d");
-  const playerStateEl = document.getElementById("player-state");
-  const curtisStateEl = document.getElementById("curtis-state");
-  const mowedCountEl = document.getElementById("mowed-count");
-  const mowerFillStatEl = document.getElementById("mower-fill-stat");
-  const mowerFillMeterEl = document.getElementById("mower-fill-meter");
-  const mowerFillTextEl = document.getElementById("mower-fill-text");
-  const mowerFillBarEl = document.getElementById("mower-fill-bar");
-  const loadStatusEl = document.getElementById("load-status");
-  const levelFileInputEl = document.getElementById("level-file-input");
-  const loadDefaultButtonEl = document.getElementById("load-default");
-  const restartLevelButtonEl = document.getElementById("restart-level");
-  const joystickEl = document.getElementById("joystick");
-  const joystickKnobEl = document.getElementById("joystick-knob");
-  const actionButtonEl = document.getElementById("action-button");
-  const titleScreenEl = document.getElementById("title-screen");
-  const winScreenEl = document.getElementById("win-screen");
-  const winTimeEl = document.getElementById("win-time");
-  const winAlertTimeEl = document.getElementById("win-alert-time");
-  const gameOverScreenEl = document.getElementById("game-over-screen");
-  const gameoverMowedEl = document.getElementById("gameover-mowed");
-  const winPlayAgainEl = document.getElementById("win-play-again");
-  const gameoverPlayAgainEl = document.getElementById("gameover-play-again");
-  const titlePromptEl = document.getElementById("title-prompt");
-
   const heldMoveState = {
-    source: null,
     direction: null,
-    key: null,
     timerId: null
-  };
-  const touchState = {
-    pointerId: null,
-    direction: null
   };
 
   // ── Helpers ────────────────────────────────────────────────
@@ -126,19 +110,23 @@
       return;
     }
     const { player, level } = state.game;
-    const relX = player.x - state.presentation.camX;
-    const relY = player.y - state.presentation.camY;
 
-    if (relX < CAM_MARGIN) {
-      state.presentation.camX = Math.max(0, player.x - CAM_MARGIN);
-    } else if (relX > VIEWPORT_W - CAM_MARGIN - 1) {
-      state.presentation.camX = Math.min(level.width - VIEWPORT_W, player.x - (VIEWPORT_W - CAM_MARGIN - 1));
+    if (level.width > VIEWPORT_W) {
+      const relX = player.x - state.presentation.camX;
+      if (relX < CAM_MARGIN) {
+        state.presentation.camX = Math.max(0, player.x - CAM_MARGIN);
+      } else if (relX > VIEWPORT_W - CAM_MARGIN - 1) {
+        state.presentation.camX = Math.min(level.width - VIEWPORT_W, player.x - (VIEWPORT_W - CAM_MARGIN - 1));
+      }
     }
 
-    if (relY < CAM_MARGIN) {
-      state.presentation.camY = Math.max(0, player.y - CAM_MARGIN);
-    } else if (relY > VIEWPORT_H - CAM_MARGIN - 1) {
-      state.presentation.camY = Math.min(level.height - VIEWPORT_H, player.y - (VIEWPORT_H - CAM_MARGIN - 1));
+    if (level.height > VIEWPORT_H) {
+      const relY = player.y - state.presentation.camY;
+      if (relY < CAM_MARGIN) {
+        state.presentation.camY = Math.max(0, player.y - CAM_MARGIN);
+      } else if (relY > VIEWPORT_H - CAM_MARGIN - 1) {
+        state.presentation.camY = Math.min(level.height - VIEWPORT_H, player.y - (VIEWPORT_H - CAM_MARGIN - 1));
+      }
     }
   }
 
@@ -155,15 +143,9 @@
            tileY >= state.presentation.camY && tileY < state.presentation.camY + VIEWPORT_H;
   }
 
-  function setLoadStatus(message, tone) {
-    loadStatusEl.textContent = message;
-    loadStatusEl.classList.toggle("is-error", tone === "error");
-    loadStatusEl.classList.toggle("is-ok", tone === "ok");
-  }
-
   function flushGameStatus() {
     if (state.game && state.game.lastStatus) {
-      setLoadStatus(state.game.lastStatus.message, state.game.lastStatus.tone);
+      emit("load-status", { message: state.game.lastStatus.message, tone: state.game.lastStatus.tone });
       state.game.lastStatus = null;
     }
   }
@@ -212,31 +194,28 @@
   // ── Screen flow ────────────────────────────────────────────
 
   function showTitleScreen() {
-    titleScreenEl.classList.remove("is-dismissing");
-    titleScreenEl.style.display = "";
-    titleScreenEl.setAttribute("aria-hidden", "false");
-    titlePromptEl.hidden = true;
     state.presentation.playAgainReady = false;
     if (state.presentation.playAgainTimerId) {
       window.clearTimeout(state.presentation.playAgainTimerId);
     }
+    emit("phase", { phase: "title" });
+    emit("prompt", { visible: false });
+    emit("action-state", { enabled: false });
     state.presentation.playAgainTimerId = window.setTimeout(() => {
       state.presentation.playAgainReady = true;
-      titlePromptEl.hidden = false;
-    }, 5000);
+      emit("prompt", { visible: true });
+      emit("action-state", { enabled: true });
+    }, 3000);
   }
 
   function dismissTitle() {
     if (state.presentation.phase !== "title" || !state.presentation.playAgainReady) {
       return;
     }
+    emit("action-state", { enabled: false });
     state.presentation.phase = "playing";
     state.presentation.startTimeMs = Date.now();
-    titleScreenEl.classList.add("is-dismissing");
-    window.setTimeout(() => {
-      titleScreenEl.style.display = "none";
-      titleScreenEl.setAttribute("aria-hidden", "true");
-    }, 520);
+    emit("phase", { phase: "playing" });
     startSimulationLoop();
   }
 
@@ -247,17 +226,19 @@
     state.presentation.phase = "winning";
     const elapsed = Date.now() - state.presentation.startTimeMs;
     const alertMs = state.game ? (state.game.curtisAlertMs || 0) : 0;
-    winTimeEl.textContent = formatTime(elapsed);
-    winAlertTimeEl.textContent = formatTime(alertMs);
-    winScreenEl.setAttribute("aria-hidden", "false");
-    winScreenEl.classList.add("is-active");
+    emit("phase", { phase: "winning" });
+    emit("win", { time: formatTime(elapsed), alertTime: formatTime(alertMs) });
+    emit("prompt", { visible: false });
+    emit("action-state", { enabled: false });
     state.presentation.playAgainTimerId = window.setTimeout(() => {
       state.presentation.playAgainReady = true;
-      winPlayAgainEl.hidden = false;
+      emit("prompt", { visible: true });
+      emit("action-state", { enabled: true });
     }, 5000);
   }
 
   function setCanvasGreyscale(step) {
+    if (!canvasEl) return;
     canvasEl.classList.remove("greyscale-1", "greyscale-2", "greyscale-3", "greyscale-4");
     if (step > 0) {
       canvasEl.classList.add(`greyscale-${step}`);
@@ -269,14 +250,16 @@
       state.game.loseState = "game_over";
       const remaining = core.countRemainingTallGrass(state.game.level);
       const mowed = state.game.totalMowable - remaining;
-      gameoverMowedEl.textContent = `${mowed} / ${state.game.totalMowable}`;
+      emit("gameover", { mowed, total: state.game.totalMowable });
     }
     state.presentation.phase = "gameover";
-    gameOverScreenEl.setAttribute("aria-hidden", "false");
-    gameOverScreenEl.classList.add("is-visible");
+    emit("phase", { phase: "gameover" });
+    emit("prompt", { visible: false });
+    emit("action-state", { enabled: false });
     state.presentation.playAgainTimerId = window.setTimeout(() => {
       state.presentation.playAgainReady = true;
-      gameoverPlayAgainEl.hidden = false;
+      emit("prompt", { visible: true });
+      emit("action-state", { enabled: true });
     }, 5000);
   }
 
@@ -293,17 +276,55 @@
   }
 
   function triggerPlayAgain() {
-    // Block any further input immediately
     if (state.presentation.playAgainTimerId) {
       window.clearTimeout(state.presentation.playAgainTimerId);
       state.presentation.playAgainTimerId = null;
     }
     state.presentation.playAgainReady = false;
-    const screenEl = state.presentation.phase === "winning" ? winScreenEl : gameOverScreenEl;
-    screenEl.classList.add("is-hiding");
-    // Restart the level after the fade completes; restartLevel → loadLevelFromObject
-    // → resetPresentation cleans up all the screen classes and game state properly
+    emit("play-again", { fromPhase: state.presentation.phase });
     window.setTimeout(restartLevel, 650);
+  }
+
+  function handleConfirm() {
+    const phase = state.presentation.phase;
+    if (phase === "title") {
+      dismissTitle();
+    } else if ((phase === "winning" || phase === "gameover") && state.presentation.playAgainReady) {
+      triggerPlayAgain();
+    }
+  }
+
+  function handlePause() {
+    if (state.presentation.phase !== "playing") return;
+    state.presentation.phase = "paused";
+    stopSimulationLoop();
+    clearHeldMovement();
+    setCanvasGreyscale(4);
+    emit("phase", { phase: "paused" });
+    emit("action-state", { enabled: true });
+  }
+
+  function handleResume() {
+    if (state.presentation.phase !== "paused") return;
+    setCanvasGreyscale(0);
+    state.presentation.phase = "playing";
+    emit("phase", { phase: "playing" });
+    startSimulationLoop();
+    updateHud();
+  }
+
+  function handleResetToTitle() {
+    stopSimulationLoop();
+    clearHeldMovement();
+    setCanvasGreyscale(0);
+    if (state.presentation.greyscaleTimerId) {
+      window.clearTimeout(state.presentation.greyscaleTimerId);
+      state.presentation.greyscaleTimerId = null;
+    }
+    state.presentation.phase = "title";
+    emit("reset");
+    showTitleScreen();
+    loadDefaultLevel();
   }
 
   function checkForScreenTransitions() {
@@ -315,6 +336,7 @@
     }
     if (state.game.loseState === "captured" && state.presentation.phase === "playing") {
       state.presentation.phase = "losing";
+      emit("phase", { phase: "losing" });
       beginLoseSequence();
     }
   }
@@ -324,7 +346,6 @@
       window.clearTimeout(state.presentation.greyscaleTimerId);
       state.presentation.greyscaleTimerId = null;
     }
-    // Preserve the title delay timer when the level loads under the title screen
     if (state.presentation.phase !== "title") {
       if (state.presentation.playAgainTimerId) {
         window.clearTimeout(state.presentation.playAgainTimerId);
@@ -337,17 +358,12 @@
     state.presentation.camX = 0;
     state.presentation.camY = 0;
     setCanvasGreyscale(0);
-
-    winScreenEl.classList.remove("is-active", "is-hiding");
-    winScreenEl.setAttribute("aria-hidden", "true");
-    winPlayAgainEl.hidden = true;
-    gameOverScreenEl.classList.remove("is-visible", "is-hiding");
-    gameOverScreenEl.setAttribute("aria-hidden", "true");
-    gameoverPlayAgainEl.hidden = true;
-
+    emit("reset");
     if (state.presentation.phase !== "title") {
       state.presentation.phase = "playing";
       state.presentation.startTimeMs = Date.now();
+      emit("phase", { phase: "playing" });
+      startSimulationLoop();
     }
   }
 
@@ -358,18 +374,23 @@
     state.levelSource = sourceLabel;
     state.game = core.createGameState(levelData);
     initCamera();
-    setLoadStatus(`Loaded level from ${sourceLabel}.`, "ok");
+    emit("load-status", { message: `Loaded level from ${sourceLabel}.`, tone: "ok" });
     render();
   }
 
   function setCanvasSize(width, height) {
+    if (!canvasEl) return;
     canvasEl.width = width * TILE_SIZE;
     canvasEl.height = height * TILE_SIZE;
   }
 
   async function readLevelFile(file, label) {
-    const parsed = JSON.parse(await file.text());
-    loadLevelFromObject(parsed, label || file.name);
+    try {
+      const parsed = JSON.parse(await file.text());
+      loadLevelFromObject(parsed, label || file.name);
+    } catch (error) {
+      emit("load-status", { message: `Unable to import level: ${error.message}`, tone: "error" });
+    }
   }
 
   async function loadDefaultLevel() {
@@ -381,7 +402,7 @@
       const parsed = await response.json();
       loadLevelFromObject(parsed, DEFAULT_LEVEL_URL);
     } catch (error) {
-      setLoadStatus(`Unable to load default level: ${error.message}`, "error");
+      emit("load-status", { message: `Unable to load default level: ${error.message}`, tone: "error" });
     }
   }
 
@@ -824,42 +845,102 @@
     }
   }
 
+  function drawPoliceOffscreenIndicator() {
+    if (!state.game) return;
+    const police = core.getPolice(state.game);
+    if (!police || !police.active) return;
+    if (isInView(police.x, police.y)) return;
+
+    const camX = state.presentation.camX;
+    const camY = state.presentation.camY;
+    const relX = police.x - camX;
+    const relY = police.y - camY;
+
+    // Which axis is the police further out of bounds on?
+    const excessX = Math.max(0, -relX) + Math.max(0, relX - (VIEWPORT_W - 1));
+    const excessY = Math.max(0, -relY) + Math.max(0, relY - (VIEWPORT_H - 1));
+
+    let edgeVX, edgeVY;
+    if (excessX >= excessY) {
+      edgeVX = relX < 0 ? 0 : VIEWPORT_W - 1;
+      edgeVY = Math.max(0, Math.min(VIEWPORT_H - 1, relY));
+    } else {
+      edgeVY = relY < 0 ? 0 : VIEWPORT_H - 1;
+      edgeVX = Math.max(0, Math.min(VIEWPORT_W - 1, relX));
+    }
+
+    const px = edgeVX * TILE_SIZE;
+    const py = edgeVY * TILE_SIZE;
+    const frame = Math.floor(Date.now() / 360) % 2;
+
+    drawSirenSprite(px, py, frame, "rgba(220, 35, 35, 0.95)");
+  }
+
+  function drawSirenSprite(px, py, frame, ringColor) {
+    const cx = px + 8;
+    const cy = py + 7;
+
+    // Bubble background
+    context.save();
+    context.beginPath();
+    context.arc(cx, cy, 7, 0, Math.PI * 2);
+    context.fillStyle = "rgba(4, 3, 2, 0.82)";
+    context.fill();
+    context.strokeStyle = ringColor;
+    context.lineWidth = 1;
+    context.stroke();
+    context.restore();
+
+    // Beacon housing (dark outer block)
+    context.fillStyle = "#181412";
+    context.fillRect(px + 4, py + 2, 8, 6);
+
+    // Light window — left 3px / right 3px swap bright↔dim each frame
+    const bright = "#ff6010";
+    const dim    = "#5a1e00";
+    if (frame === 0) {
+      context.fillStyle = bright;
+      context.fillRect(px + 5, py + 3, 3, 4);
+      context.fillStyle = dim;
+      context.fillRect(px + 8, py + 3, 3, 4);
+    } else {
+      context.fillStyle = dim;
+      context.fillRect(px + 5, py + 3, 3, 4);
+      context.fillStyle = bright;
+      context.fillRect(px + 8, py + 3, 3, 4);
+    }
+
+    // Mount stem + base
+    context.fillStyle = "#3c3c3c";
+    context.fillRect(px + 7, py + 8, 2, 2);
+    context.fillStyle = "#505050";
+    context.fillRect(px + 5, py + 10, 6, 1);
+  }
+
   // ── HUD ────────────────────────────────────────────────────
 
   function updateHud() {
-    if (!state.game) {
-      playerStateEl.textContent = "-";
-      curtisStateEl.textContent = "-";
-      mowedCountEl.textContent = "0 / 0";
-      mowerFillTextEl.textContent = "0 / 0";
-      mowerFillBarEl.style.width = "0%";
-      mowerFillStatEl.hidden = true;
-      mowerFillMeterEl.hidden = true;
-      actionButtonEl.textContent = "Action";
-      actionButtonEl.disabled = true;
-      return;
-    }
-
-    playerStateEl.textContent = core.getPlayerStateLabel(state.game);
-    curtisStateEl.textContent = core.getCurtisStateLabel(state.game);
-
-    const remaining = core.countRemainingTallGrass(state.game.level);
-    const mowed = state.game.totalMowable - remaining;
-    const mower = core.getMower(state.game);
-    const isOperatingMower = state.game.player.attachedItemType === "mower";
-    const fillRatio = getMowerFillRatio();
-    mowedCountEl.textContent = `${mowed} / ${state.game.totalMowable}`;
-    mowerFillTextEl.textContent = mower ? `${mower.fullness} / ${mower.capacity}` : "0 / 0";
-    mowerFillBarEl.style.width = `${Math.round(fillRatio * 100)}%`;
-    mowerFillStatEl.hidden = !isOperatingMower;
-    mowerFillMeterEl.hidden = !isOperatingMower;
-    actionButtonEl.textContent = core.getActionLabel(state.game);
-    actionButtonEl.disabled = !core.hasAvailableAction(state.game);
+    emit("action-state", {
+      enabled: Boolean(state.game && core.hasAvailableAction(state.game))
+    });
   }
 
   // ── Render ─────────────────────────────────────────────────
 
   function render() {
+    if (!context) return;
+
+    if (state.presentation.phase === "title") {
+      const img = getImage("../assets/cutscenes/cutscene-start.png");
+      if (img && img.complete && img.naturalWidth > 0) {
+        context.drawImage(img, 0, 0, canvasEl.width, canvasEl.height);
+      } else {
+        context.fillStyle = "#080808";
+        context.fillRect(0, 0, canvasEl.width, canvasEl.height);
+      }
+      return;
+    }
+
     if (!state.game || !state.game.level) {
       context.clearRect(0, 0, canvasEl.width, canvasEl.height);
       updateHud();
@@ -906,65 +987,9 @@
     drawPolice();
     drawPlayer();
     drawOverlappingMoveableIndicators();
+    drawPoliceOffscreenIndicator();
     drawMowerFillIndicator();
     updateHud();
-  }
-
-  // ── Keyboard input ─────────────────────────────────────────
-
-  function handleKeyDown(event) {
-    if (state.presentation.phase === "title") {
-      event.preventDefault();
-      if (!event.repeat) {
-        dismissTitle();
-      }
-      return;
-    }
-
-    if (state.presentation.phase === "winning" || state.presentation.phase === "gameover") {
-      if (!event.repeat && state.presentation.playAgainReady) {
-        triggerPlayAgain();
-      }
-      return;
-    }
-
-    const direction = getDirectionFromKey(event.key);
-
-    if (direction) {
-      event.preventDefault();
-      if (event.repeat) {
-        return;
-      }
-      beginHeldMovement(direction, "keyboard", event.key);
-    } else if (event.key === " " || event.key === "Enter" || event.key === "e" || event.key === "E") {
-      event.preventDefault();
-      if (event.repeat) {
-        return;
-      }
-      handleAction();
-    }
-  }
-
-  function handleKeyUp(event) {
-    if (heldMoveState.source === "keyboard" && heldMoveState.key === event.key) {
-      clearHeldMovement();
-    }
-  }
-
-  function getDirectionFromKey(key) {
-    if (key === "ArrowUp" || key === "w" || key === "W") {
-      return "up";
-    }
-    if (key === "ArrowDown" || key === "s" || key === "S") {
-      return "down";
-    }
-    if (key === "ArrowLeft" || key === "a" || key === "A") {
-      return "left";
-    }
-    if (key === "ArrowRight" || key === "d" || key === "D") {
-      return "right";
-    }
-    return null;
   }
 
   function stepDirection(direction) {
@@ -978,26 +1003,20 @@
     if (heldMoveState.timerId) {
       window.clearInterval(heldMoveState.timerId);
     }
-    heldMoveState.source = null;
     heldMoveState.direction = null;
-    heldMoveState.key = null;
     heldMoveState.timerId = null;
   }
 
-  function beginHeldMovement(direction, source, key = null, immediate = true) {
+  function beginHeldMovement(direction, immediate = true) {
     if (!direction) {
       clearHeldMovement();
       return;
     }
-
-    if (heldMoveState.direction === direction && heldMoveState.source === source && heldMoveState.key === key) {
+    if (heldMoveState.direction === direction) {
       return;
     }
-
     clearHeldMovement();
-    heldMoveState.source = source;
     heldMoveState.direction = direction;
-    heldMoveState.key = key;
     if (immediate) {
       stepDirection(direction);
     }
@@ -1006,166 +1025,50 @@
     }, SIMULATION_TICK_MS);
   }
 
-  // ── Touch / joystick input ─────────────────────────────────
+  // ── Public API ─────────────────────────────────────────────
 
-  function setJoystickVisual(dx, dy, isActive) {
-    joystickEl.classList.toggle("is-active", Boolean(isActive));
-    joystickKnobEl.style.transform = `translate(${dx}px, ${dy}px)`;
-  }
+  window.BagNinjaGame = {
+    connect(canvas) {
+      canvasEl = canvas;
+      context  = canvas.getContext("2d");
+      setCanvasSize(VIEWPORT_W, VIEWPORT_H);
+      render();
+      showTitleScreen();
+      loadDefaultLevel();
+    },
 
-  function resetJoystick() {
-    touchState.pointerId = null;
-    touchState.direction = null;
-    if (heldMoveState.source === "joystick") {
-      clearHeldMovement();
-    }
-    setJoystickVisual(0, 0, false);
-  }
-
-  function resolveJoystickDirection(event) {
-    const rect = joystickEl.getBoundingClientRect();
-    const centerX = rect.left + (rect.width / 2);
-    const centerY = rect.top + (rect.height / 2);
-    const rawDx = event.clientX - centerX;
-    const rawDy = event.clientY - centerY;
-    const radius = rect.width / 2;
-    const maxOffset = 30;
-    const distance = Math.min(Math.hypot(rawDx, rawDy), radius);
-    const angle = Math.atan2(rawDy, rawDx);
-    const clampedDx = Math.cos(angle) * Math.min(distance, maxOffset);
-    const clampedDy = Math.sin(angle) * Math.min(distance, maxOffset);
-    const threshold = 12;
-
-    let direction = null;
-    if (distance >= threshold) {
-      if (Math.abs(rawDx) > Math.abs(rawDy)) {
-        direction = rawDx > 0 ? "right" : "left";
-      } else {
-        direction = rawDy > 0 ? "down" : "up";
+    command(name, ...args) {
+      switch (name) {
+        case "move-start":   if (state.presentation.phase === "playing") beginHeldMovement(args[0], args[1] !== false); break;
+        case "move-stop":    clearHeldMovement(); break;
+        case "action":       handleAction(); break;
+        case "confirm":      handleConfirm(); break;
+        case "pause":          handlePause(); break;
+        case "resume":         handleResume(); break;
+        case "restart":        restartLevel(); break;
+        case "reset-to-title": handleResetToTitle(); break;
+        case "load-default": loadDefaultLevel(); break;
+        case "load-file":    readLevelFile(args[0], args[1]); break;
+        default: break;
       }
-    }
+    },
 
-    return {
-      direction,
-      dx: Number.isFinite(clampedDx) ? clampedDx : 0,
-      dy: Number.isFinite(clampedDy) ? clampedDy : 0
-    };
-  }
+    on(event, fn) {
+      (_handlers[event] || (_handlers[event] = [])).push(fn);
+    },
 
-  function updateJoystickFromPointer(event) {
-    const next = resolveJoystickDirection(event);
-    setJoystickVisual(next.dx, next.dy, Boolean(next.direction));
+    off(event, fn) {
+      const list = _handlers[event];
+      if (list) _handlers[event] = list.filter(h => h !== fn);
+    },
 
-    if (next.direction !== touchState.direction) {
-      const previousDirection = touchState.direction;
-      touchState.direction = next.direction;
-      if (next.direction) {
-        beginHeldMovement(next.direction, "joystick", null, previousDirection === null);
-      } else if (heldMoveState.source === "joystick") {
-        clearHeldMovement();
-      }
-      return;
-    }
-
-    if (!next.direction && heldMoveState.source === "joystick") {
+    disconnect() {
+      stopSimulationLoop();
       clearHeldMovement();
+      if (state.presentation.greyscaleTimerId) window.clearTimeout(state.presentation.greyscaleTimerId);
+      if (state.presentation.playAgainTimerId)  window.clearTimeout(state.presentation.playAgainTimerId);
+      canvasEl = null;
+      context  = null;
     }
-  }
-
-  // ── Event listeners ────────────────────────────────────────
-
-  titleScreenEl.addEventListener("pointerdown", () => {
-    if (state.presentation.playAgainReady) {
-      dismissTitle();
-    }
-  });
-
-  winScreenEl.addEventListener("pointerdown", () => {
-    if (state.presentation.phase === "winning" && state.presentation.playAgainReady) {
-      triggerPlayAgain();
-    }
-  });
-
-  gameOverScreenEl.addEventListener("pointerdown", () => {
-    if (state.presentation.phase === "gameover" && state.presentation.playAgainReady) {
-      triggerPlayAgain();
-    }
-  });
-
-  loadDefaultButtonEl.addEventListener("click", () => {
-    loadDefaultLevel();
-  });
-
-  restartLevelButtonEl.addEventListener("click", () => {
-    restartLevel();
-  });
-
-  actionButtonEl.addEventListener("click", () => {
-    handleAction();
-  });
-
-  levelFileInputEl.addEventListener("change", async (event) => {
-    const file = event.target.files[0];
-    if (!file) {
-      return;
-    }
-    try {
-      await readLevelFile(file, file.name);
-    } catch (error) {
-      setLoadStatus(`Unable to import level: ${error.message}`, "error");
-    }
-    event.target.value = "";
-  });
-
-  document.querySelectorAll("[data-move]").forEach((button) => {
-    button.addEventListener("click", () => {
-      movePlayer(button.dataset.move);
-    });
-  });
-
-  joystickEl.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    joystickEl.setPointerCapture(event.pointerId);
-    touchState.pointerId = event.pointerId;
-    updateJoystickFromPointer(event);
-  });
-
-  joystickEl.addEventListener("pointermove", (event) => {
-    if (event.pointerId !== touchState.pointerId) {
-      return;
-    }
-    event.preventDefault();
-    updateJoystickFromPointer(event);
-  });
-
-  joystickEl.addEventListener("pointerup", (event) => {
-    if (event.pointerId !== touchState.pointerId) {
-      return;
-    }
-    event.preventDefault();
-    resetJoystick();
-  });
-
-  joystickEl.addEventListener("pointercancel", (event) => {
-    if (event.pointerId !== touchState.pointerId) {
-      return;
-    }
-    event.preventDefault();
-    resetJoystick();
-  });
-
-  window.addEventListener("keydown", handleKeyDown);
-  window.addEventListener("keyup", handleKeyUp);
-  window.addEventListener("blur", () => {
-    clearHeldMovement();
-    resetJoystick();
-  });
-  window.addEventListener("beforeunload", stopSimulationLoop);
-
-  // ── Startup ────────────────────────────────────────────────
-
-  setCanvasSize(VIEWPORT_W, VIEWPORT_H);
-  render();
-  showTitleScreen();
-  loadDefaultLevel();
+  };
 }());
