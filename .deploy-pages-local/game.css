@@ -1,0 +1,589 @@
+/* ── Design tokens ─────────────────────────────────────────── */
+
+:root {
+  --ink:         #1a1916;
+  --ink-mid:     #4a4844;
+  --device-body: #c4c0b8;
+  --device-mid:  #a8a49c;
+  --device-dark: #88847e;
+  --screen-surr: #262422;
+  --btn-pause:   #786060;
+  --btn-action:  #5e6878;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #0c0c0c;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+.app {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100dvh;
+  padding: max(20px, env(safe-area-inset-top, 20px)) 10px
+           max(36px, env(safe-area-inset-bottom, 36px));
+}
+
+.utility-hidden { display: none; }
+
+/* ── Device body ───────────────────────────────────────────── */
+
+.device {
+  position: relative;
+  width: min(310px, calc(100vw - 20px));
+  background: var(--device-body);
+  border: 2px solid var(--ink);
+  border-radius: 10px 10px 24px 24px;
+  padding: 14px 14px 18px;
+  box-shadow: 4px 6px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ── Device header ─────────────────────────────────────────── */
+
+.device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px 10px;
+  border-bottom: 1px solid var(--ink-mid);
+  margin-bottom: 12px;
+}
+
+.device-brand {
+  font-size: 0.55rem;
+  font-weight: bold;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.device-led {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #787c6c;
+  border: 1px solid var(--ink-mid);
+  animation: led-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes led-breathe {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── Screen surround & bezel ───────────────────────────────── */
+
+.device-screen-surround {
+  background: var(--screen-surr);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.device-screen-bezel {
+  position: relative;
+  overflow: hidden;
+  line-height: 0;
+  border: 1px solid #000;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* scanlines div kept in HTML but invisible */
+.screen-scanlines { display: none; }
+
+/* ── Controls row ──────────────────────────────────────────── */
+
+.device-controls {
+  display: flex;
+  align-items: center;
+  padding: 16px 4px 6px;
+}
+
+.controls-left   { flex: 0 0 auto; }
+.controls-center { flex: 1; }
+.controls-right  { flex: 0 0 auto; }
+
+/* ── D-pad ─────────────────────────────────────────────────── */
+
+.dpad {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+/*
+  Cross shape drawn as two stacked pseudo-elements:
+  ::before = ink border layer (full cross polygon)
+  ::after  = gray fill layer (same polygon, 2px inset)
+  Arm spans are kept in HTML for JS compatibility but hidden.
+*/
+.dpad::before,
+.dpad::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* 84×84 cross with 28px arm width */
+  clip-path: polygon(
+    28px 0px,  56px 0px,
+    56px 28px, 84px 28px,
+    84px 56px, 56px 56px,
+    56px 84px, 28px 84px,
+    28px 56px, 0px 56px,
+    0px 28px,  28px 28px
+  );
+}
+
+.dpad::before {
+  background: var(--ink);
+  z-index: 0;
+}
+
+.dpad::after {
+  /* 2px uniform inset of the outer polygon */
+  clip-path: polygon(
+    30px 2px,  54px 2px,
+    54px 30px, 82px 30px,
+    82px 54px, 54px 54px,
+    54px 82px, 30px 82px,
+    30px 54px, 2px 54px,
+    2px 30px,  30px 30px
+  );
+  background: var(--device-mid);
+  z-index: 1;
+}
+
+.dpad-arm { display: none; }
+
+/* Arrow indicators */
+.dpad-arrow {
+  position: absolute;
+  width: 0; height: 0;
+  z-index: 2;
+  opacity: 0.45;
+}
+
+.dpad-up, .dpad-down {
+  left: 50%; transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+.dpad-up    { top: 6px;    border-bottom: 6px solid var(--ink); }
+.dpad-down  { bottom: 6px; border-top:    6px solid var(--ink); }
+
+.dpad-left, .dpad-right {
+  top: 50%; transform: translateY(-50%);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+.dpad-left  { left: 6px;  border-right: 6px solid var(--ink); }
+.dpad-right { right: 6px; border-left:  6px solid var(--ink); }
+
+/* Joystick thumb knob — positioned at center, JS translates it */
+.joystick-knob-hidden {
+  display: block;
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--device-dark);
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+  top: 50%;
+  left: 50%;
+  margin-top: -15px;
+  margin-left: -15px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+
+.button-cluster {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.device-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  cursor: pointer;
+  transition: transform 60ms ease, box-shadow 60ms ease;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+.device-btn:active {
+  transform: scale(0.92) translateY(2px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.btn-pause  { background: var(--btn-pause);  transition: opacity 150ms ease, transform 60ms ease, box-shadow 60ms ease; }
+.btn-action { background: var(--btn-action); transition: opacity 150ms ease, transform 60ms ease, box-shadow 60ms ease; }
+.device-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Device footer / speaker ───────────────────────────────── */
+
+.device-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--device-dark);
+  margin-top: 10px;
+}
+
+.device-speaker {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.device-speaker span {
+  display: block;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--device-dark);
+}
+.device-speaker span:nth-child(1),
+.device-speaker span:nth-child(5) { height: 6px; }
+.device-speaker span:nth-child(2),
+.device-speaker span:nth-child(4) { height: 9px; }
+.device-speaker span:nth-child(3) { height: 12px; }
+
+/* ── Canvas greyscale steps ────────────────────────────────── */
+
+canvas.greyscale-1 { filter: grayscale(25%); }
+canvas.greyscale-2 { filter: grayscale(50%); }
+canvas.greyscale-3 { filter: grayscale(75%); }
+canvas.greyscale-4 { filter: grayscale(100%); }
+
+/* ── Canvas transition helpers ─────────────────────────────── */
+
+#game-canvas.greyscale-smooth { transition: filter 1000ms ease; }
+
+#impact-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  background: rgba(220, 0, 0, 0.62);
+  opacity: 0;
+  pointer-events: none;
+}
+#impact-flash.is-active {
+  animation: impact-flash-anim 650ms ease-out forwards;
+}
+@keyframes impact-flash-anim {
+  0%   { opacity: 1; }
+  40%  { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+
+#fade-curtain {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 350ms ease;
+}
+#fade-curtain.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Overlay screen shared ─────────────────────────────────── */
+
+.title-screen,
+.win-screen,
+.game-over-screen {
+  font-family: 'Courier New', Courier, monospace;
+  color: #e0dcd4;
+}
+
+.screen-prompt {
+  margin: 14px 0 0;
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(224, 220, 212, 0.55);
+  animation: prompt-pulse 1.4s ease-in-out infinite;
+}
+
+.play-again-prompt {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: #f8e818;
+  text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000;
+  animation: prompt-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes prompt-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.15; }
+}
+
+@keyframes prompt-appear {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Title screen ──────────────────────────────────────────── */
+
+.title-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: transparent;
+  transform: translateY(0);
+  transition: transform 600ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.title-screen.is-dismissing {
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+.title-cutscene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  object-fit: fill;
+}
+
+/* Arcade-style start prompt — absolute so it never shifts the scene */
+#title-prompt {
+  position: absolute;
+  top: 66.67%;
+  transform: translateY(-50%);
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 18px;
+  letter-spacing: 0.15em;
+  color: #f8e818;
+  /* 1px pixel-outline for readability over any background color */
+  text-shadow:
+    1px  0   0 #000,
+   -1px  0   0 #000,
+    0    1px 0 #000,
+    0   -1px 0 #000;
+}
+
+/* ── Win screen ────────────────────────────────────────────── */
+
+.win-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  transform: translateY(-100%);
+  pointer-events: none;
+  transition: transform 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.win-screen.is-active { transform: translateY(0); pointer-events: auto; }
+.win-screen.is-hiding { transform: translateY(-100%); pointer-events: none; transition: transform 500ms ease-in; }
+
+.win-cutscene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  object-fit: fill;
+}
+
+.win-stats {
+  position: absolute;
+  bottom: 32px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  line-height: 2.2;
+  color: #e8e8d8;
+  text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 220ms ease-out, transform 220ms ease-out;
+}
+.win-screen.is-stats-visible .win-stats {
+  opacity: 1;
+  transform: translateY(0);
+}
+.win-stats p      { margin: 0; }
+.win-stats strong { color: #f8e818; }
+
+/* ── Game over screen ──────────────────────────────────────── */
+
+.game-over-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  transform: translateY(-100%);
+  pointer-events: none;
+  transition: transform 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.game-over-screen.is-visible { transform: translateY(0); pointer-events: auto; }
+.game-over-screen.is-hiding  { transform: translateY(-100%); pointer-events: none; transition: transform 500ms ease-in; }
+
+.game-over-stats {
+  position: absolute;
+  bottom: 32px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  line-height: 2.2;
+  color: #e8e8d8;
+  text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000;
+}
+.game-over-stats p      { margin: 0; }
+.game-over-stats strong { color: #f8e818; }
+
+/* ── Pause screen ──────────────────────────────────────────── */
+
+.pause-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.38);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.pause-screen.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/*
+  Warm parchment panel — pops against the cold dark grayscale canvas.
+  Classic RPG dialog box: border → 1px panel-color gap → outer border → glow.
+*/
+.pause-panel {
+  background: #e0cc88;
+  border: 2px solid #3a2808;
+  box-shadow:
+    0 0 0 1px #e0cc88,
+    0 0 0 3px #3a2808,
+    0 0 18px 6px rgba(210, 168, 48, 0.45),
+    3px 6px 0 rgba(0, 0, 0, 0.9);
+  padding: 11px 16px 13px;
+  width: 156px;
+  max-width: calc(100% - 28px);
+  image-rendering: pixelated;
+}
+
+.pause-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  font-weight: normal;
+  color: #1c1004;
+  text-transform: uppercase;
+  text-align: center;
+  margin: 0 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #7a5e20;
+  line-height: 1;
+}
+
+.pause-message {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  color: #4a3010;
+  margin: 0 0 10px;
+  line-height: 2;
+  text-align: center;
+}
+
+.pause-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.pause-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: #8a7040;
+  line-height: 1;
+}
+
+.pause-option.is-selected {
+  color: #100800;
+}
+
+.pause-arrow {
+  font-size: 5px;
+  color: #c02800;
+  opacity: 0;
+  flex-shrink: 0;
+  width: 7px;
+}
+
+.pause-option.is-selected .pause-arrow {
+  opacity: 1;
+  animation: pause-tick 0.75s ease-in-out infinite;
+}
+
+@keyframes pause-tick {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.1; }
+}
+
+/* ── 2× scale on large screens ─────────────────────────────── */
+
+@media (min-width: 680px) {
+  .device {
+    zoom: 2;
+  }
+}
