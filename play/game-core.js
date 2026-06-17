@@ -240,6 +240,14 @@
       mowCurrentTile(state);
     }
 
+    if (state.loseState === "police_arriving"
+        && state.police && state.police.active
+        && state.police.x === state.player.x
+        && state.police.y === state.player.y) {
+      state.loseState = "captured";
+      setStatus(state, "Busted.", "error");
+    }
+
     checkWinCondition(state);
     return true;
   }

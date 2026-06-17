@@ -73,6 +73,7 @@
   };
 
   const imageCache = new Map();
+  const silhouetteCache = new Map();
 
   const heldMoveState = {
     direction: null,
@@ -182,6 +183,47 @@
     }
     fallback();
     return false;
+  }
+
+  function getTintedSilhouette(path, color) {
+    const cacheKey = `${path}|${color}`;
+    if (silhouetteCache.has(cacheKey)) {
+      return silhouetteCache.get(cacheKey);
+    }
+
+    const image = getImage(path);
+    if (!image || !image.complete || image.naturalWidth <= 0) {
+      return null;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = TILE_SIZE;
+    canvas.height = TILE_SIZE;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(image, 0, 0, TILE_SIZE, TILE_SIZE);
+    ctx.globalCompositeOperation = "source-in";
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+    silhouetteCache.set(cacheKey, canvas);
+    return canvas;
+  }
+
+  function drawSpriteOutline(path, pixelX, pixelY, color, thickness) {
+    const silhouette = getTintedSilhouette(path, color);
+    if (!silhouette) {
+      return false;
+    }
+
+    for (let dx = -thickness; dx <= thickness; dx += 1) {
+      for (let dy = -thickness; dy <= thickness; dy += 1) {
+        if ((dx === 0 && dy === 0) || Math.abs(dx) + Math.abs(dy) > thickness) {
+          continue;
+        }
+        context.drawImage(silhouette, pixelX + dx, pixelY + dy, TILE_SIZE, TILE_SIZE);
+      }
+    }
+
+    return true;
   }
 
   function getTwoFramePaths(prefix) {
@@ -617,29 +659,6 @@
     });
   }
 
-  function drawOverlappingMoveableIndicators() {
-    if (!state.game) {
-      return;
-    }
-
-    const player = state.game.player;
-    if (!player) {
-      return;
-    }
-
-    const freeBag = core.getFreeBagAt(state.game, player.x, player.y);
-    if (freeBag) {
-      const pixelX = toPixelX(player.x);
-      const pixelY = toPixelY(player.y);
-      context.fillStyle = "rgba(248, 244, 234, 0.92)";
-      context.fillRect(pixelX + 9, pixelY + 9, 6, 6);
-      context.fillStyle = "#ab8d63";
-      context.fillRect(pixelX + 10, pixelY + 10, 4, 4);
-      context.fillStyle = "#886f4d";
-      context.fillRect(pixelX + 11, pixelY + 9, 2, 2);
-    }
-  }
-
   function drawMowerFallback() {
     const mower = core.getMower(state.game);
     if (!mower || mower.attachedTo) {
@@ -794,6 +813,8 @@
       path = isWalking
         ? getCurrentTwoFrame(`../assets/entities/player-operate-mower-${facing}`)
         : `../assets/entities/player-operate-mower-${facing}-01.png`;
+    } else if (player.attachedItemType === "bag") {
+      path = `../assets/entities/player-carry-${facing}-01.png`;
     } else {
       path = isWalking
         ? getCurrentTwoFrame(`../assets/entities/player-walk-${facing}`)
@@ -824,6 +845,13 @@
     const curtis = state.game.curtis;
     const pixelX = toPixelX(curtis.x);
     const pixelY = toPixelY(curtis.y);
+    const isAlerted = curtis.detectionStage === "spot" || curtis.detectionStage === "alert" || curtis.detectionStage === "police";
+
+    if (isAlerted) {
+      context.fillStyle = "rgba(220, 35, 35, 0.95)";
+      context.fillRect(pixelX + 3, pixelY + 2, 10, 12);
+      context.fillRect(pixelX + 4, pixelY + 1, 8, 14);
+    }
 
     context.fillStyle = curtis.detectionStage === "police"
       ? "#a63b30"
@@ -875,6 +903,11 @@
     const path = stateName === "walk"
       ? getCurrentTwoFrame(`../assets/entities/curtis-walk-${curtis.facing}`)
       : `../assets/entities/curtis-${stateName}-${curtis.facing}-01.png`;
+    const isAlerted = curtis.detectionStage === "spot" || curtis.detectionStage === "alert" || curtis.detectionStage === "police";
+
+    if (isAlerted) {
+      drawSpriteOutline(path, pixelX, pixelY, "rgba(220, 35, 35, 0.95)", 2);
+    }
 
     drawImageOrFallback(path, pixelX, pixelY, () => {
       drawCurtisFallback();
@@ -1041,7 +1074,6 @@
     drawPolice();
     drawPlayer();
     if (state.presentation.phase === "celebrating") drawCelebrationSprite();
-    drawOverlappingMoveableIndicators();
     drawPoliceOffscreenIndicator();
     drawMowerFillIndicator();
     updateHud();
